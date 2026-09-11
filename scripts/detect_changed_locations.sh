@@ -10,6 +10,7 @@ set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 ACCOUNTS_FILE="${REPO_ROOT}/scripts/aws-accounts.txt"
+DEPENDENCIES_FILE="${REPO_ROOT}/scripts/stack-dependencies.txt"
 BASE_REF="${1:-}"
 HEAD_REF="${2:-HEAD}"
 
@@ -101,6 +102,7 @@ fi
 
 modules_changed=0
 declare -A seen=()
+declare -A changed_stacks=()
 locations=()
 
 record_location() {
@@ -126,11 +128,40 @@ for file in "${changed_files[@]}"; do
   fi
   # Account folder / terraform-stack (e.g. enterprise/ec2)
   stack="$(printf '%s\n' "${file}" | cut -d/ -f1-2)"
+  changed_stacks["${stack}"]=1
   if [[ "${stack}" == "${account}" ]]; then
     continue
   fi
   record_location "${stack}" >/dev/null
 done
+
+# Add consumers when an upstream stack changed. Format:
+#   account/upstream: account/dependent-one account/dependent-two
+if [[ -f "${DEPENDENCIES_FILE}" ]]; then
+  dependencies_added=1
+  while [[ "${dependencies_added}" -eq 1 ]]; do
+    dependencies_added=0
+    while IFS= read -r line || [[ -n "${line}" ]]; do
+      line="${line%%#*}"
+      line="$(echo "${line}" | xargs)"
+      [[ -z "${line}" ]] && continue
+
+      upstream="${line%%:*}"
+      downstream="${line#*:}"
+      upstream="$(echo "${upstream}" | xargs)"
+      if [[ -z "${seen[${upstream}]+x}" && -z "${changed_stacks[${upstream}]+x}" ]]; then
+        continue
+      fi
+
+      for dependent in ${downstream}; do
+        if [[ -z "${seen[${dependent}]+x}" ]] && is_terraform_dir "${REPO_ROOT}/${dependent}"; then
+          record_location "${dependent}" >/dev/null
+          dependencies_added=1
+        fi
+      done
+    done < "${DEPENDENCIES_FILE}"
+  done
+fi
 
 if [[ "${modules_changed}" -eq 1 ]]; then
   echo "Shared modules changed; including all Terraform stacks under account folders." >&2

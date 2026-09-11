@@ -1,55 +1,37 @@
 variable "region" {
-  description = "AWS region"
+  description = "Optional AWS region override; defaults to enterprise/common/config.json"
   type        = string
-  default     = "ap-south-1"
+  default     = null
 }
 
 variable "name" {
-  description = "Name prefix for ALB resources"
+  description = "Optional ALB name override; defaults to enterprise/common/config.json"
   type        = string
-  default     = "enterprise"
+  default     = null
 }
 
 variable "env" {
-  description = "Environment name"
-  type        = string
-  default     = "prod"
-}
-
-variable "vpc_id" {
-  description = "VPC ID. If null, the VPC is looked up by var.vpc_name"
+  description = "Optional environment override; defaults to enterprise/common/config.json"
   type        = string
   default     = null
 }
 
 variable "vpc_name" {
-  description = "Name tag of the VPC when vpc_id is not set (matches enterprise/vpc-prod module name)"
+  description = "Optional VPC Name tag override; defaults to enterprise/common/config.json"
   type        = string
-  default     = "wynk-prod"
-}
-
-variable "public_subnet_ids" {
-  description = "Public subnet IDs for the internet-facing ALB. Empty list looks up var.public_subnet_names"
-  type        = list(string)
-  default     = []
-}
-
-variable "private_subnet_ids" {
-  description = "Private subnet IDs for the internal ALB. Empty list looks up var.private_subnet_names"
-  type        = list(string)
-  default     = []
+  default     = null
 }
 
 variable "public_subnet_names" {
-  description = "Name tags of public/LB subnets when public_subnet_ids is empty"
+  description = "Optional public subnet Name tag overrides; defaults to enterprise/common/config.json"
   type        = list(string)
-  default     = ["lb-prod-subnet-1a", "lb-prod-subnet-1b"]
+  default     = null
 }
 
 variable "private_subnet_names" {
-  description = "Name tags of private/app subnets when private_subnet_ids is empty"
+  description = "Optional private subnet Name tag overrides; defaults to enterprise/common/config.json"
   type        = list(string)
-  default     = ["app-prod-subnet-1a", "app-prod-subnet-1b"]
+  default     = null
 }
 
 variable "create_external_alb" {

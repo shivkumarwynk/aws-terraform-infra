@@ -1,23 +1,30 @@
 provider "aws" {
-  region = var.region
+  region = local.region
 }
 
 locals {
-  name = "${var.name}-${var.env}"
-  tags = merge({
+  common = jsondecode(file("${path.module}/../common/config.json"))
+
+  region               = coalesce(var.region, local.common.region)
+  workload_name        = coalesce(var.name, local.common.alb.name)
+  environment          = coalesce(var.env, local.common.alb.environment)
+  vpc_name             = coalesce(var.vpc_name, local.common.network.vpc_name)
+  public_subnet_names  = var.public_subnet_names != null ? var.public_subnet_names : local.common.network.subnet_names.public
+  private_subnet_names = var.private_subnet_names != null ? var.private_subnet_names : local.common.network.subnet_names.private
+
+  name = "${local.workload_name}-${local.environment}"
+  tags = merge(local.common.tags, {
     Name        = local.name
-    Environment = var.env
-    Terraform   = "true"
+    Environment = local.environment
   }, var.tags)
 
   https_enabled          = var.enable_https && var.certificate_arn != ""
   internal_https_enabled = var.enable_internal_https && var.certificate_arn != ""
 
-  vpc                = var.vpc_id == null ? data.aws_vpc.lookup[0] : data.aws_vpc.by_id[0]
-  vpc_id             = local.vpc.id
-  vpc_cidr           = local.vpc.cidr_block
-  public_subnet_ids  = length(var.public_subnet_ids) > 0 ? var.public_subnet_ids : data.aws_subnets.public[0].ids
-  private_subnet_ids = length(var.private_subnet_ids) > 0 ? var.private_subnet_ids : data.aws_subnets.private[0].ids
+  vpc_id             = module.network.vpc_id
+  vpc_cidr           = module.network.vpc_cidr_block
+  public_subnet_ids  = [for name in local.public_subnet_names : module.network.subnet_ids[name]]
+  private_subnet_ids = [for name in local.private_subnet_names : module.network.subnet_ids[name]]
 
   additional_attachments = {
     for idx, id in var.target_ids : "target-${idx}" => {
@@ -84,45 +91,12 @@ locals {
   } : {}
 }
 
-data "aws_vpc" "lookup" {
-  count = var.vpc_id == null ? 1 : 0
+module "network" {
+  source = "../../modules/v1/terraform-aws-network-lookup"
 
-  filter {
-    name   = "tag:Name"
-    values = [var.vpc_name]
-  }
-}
-
-data "aws_vpc" "by_id" {
-  count = var.vpc_id == null ? 0 : 1
-  id    = var.vpc_id
-}
-
-data "aws_subnets" "public" {
-  count = length(var.public_subnet_ids) == 0 ? 1 : 0
-
-  filter {
-    name   = "vpc-id"
-    values = [local.vpc_id]
-  }
-
-  filter {
-    name   = "tag:Name"
-    values = var.public_subnet_names
-  }
-}
-
-data "aws_subnets" "private" {
-  count = length(var.private_subnet_ids) == 0 ? 1 : 0
-
-  filter {
-    name   = "vpc-id"
-    values = [local.vpc_id]
-  }
-
-  filter {
-    name   = "tag:Name"
-    values = var.private_subnet_names
+  vpc_name = local.vpc_name
+  subnet_names = {
+    for name in concat(local.public_subnet_names, local.private_subnet_names) : name => name
   }
 }
 
