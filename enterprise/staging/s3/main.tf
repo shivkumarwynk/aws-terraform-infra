@@ -3,7 +3,9 @@ provider "aws" {
 }
 
 locals {
-  common = jsondecode(file("${path.module}/../../common/config.json"))
+  common          = jsondecode(file("${path.module}/../../common/config.json"))
+  environment     = "non-production"
+  repository_name = "wynknon-production"
 }
 
 #module "s3_bucket_for_logs" {
@@ -39,7 +41,7 @@ locals {
 module "ecr" {
   source = "../../../modules/v1/terraform-aws-ecr"
 
-  repository_name = local.common.registry.repository_name
+  repository_name = local.repository_name
   repository_lifecycle_policy = jsonencode({
     rules = [
       {
@@ -59,6 +61,6 @@ module "ecr" {
   })
 
   tags = merge(local.common.tags, {
-    Environment = local.common.registry.environment
+    Environment = local.environment
   })
 }
