@@ -1,6 +1,5 @@
 # upstream-stack: dependent-stack(s)
 #
-# When an upstream stack changes, location detection also runs each dependent.
-# This keeps consumers that discover AWS resources by tags/names in sync.
-enterprise/vpc-prod: enterprise/ec2 enterprise/alb
+# Only shared configuration expands to multiple stacks. Changes inside a
+# deployable stack such as enterprise/vpc-prod run that stack only.
 enterprise/common: enterprise/vpc-prod enterprise/ec2 enterprise/alb enterprise/s3
