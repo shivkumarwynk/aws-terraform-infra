@@ -142,7 +142,7 @@ locals {
         cidr_block  = "0.0.0.0/0"
       },
     ]
-   }
+  }
 }
 
 ################################################################################
@@ -166,12 +166,12 @@ module "vpc" {
   database_subnet_names = local.common.network.subnet_names.database
   #intra_subnet_names       = ["int-${local.env}-subnet-1a", "int-non-${local.env}-subnet-1b"]
 
-  create_database_subnet_group = false
-  manage_default_network_acl   = false
-  public_dedicated_network_acl = true
+  create_database_subnet_group  = false
+  manage_default_network_acl    = false
+  public_dedicated_network_acl  = true
   private_dedicated_network_acl = true
-  private_inbound_acl_rules  = local.network_acls["default_inbound"]
-  private_outbound_acl_rules = local.network_acls["default_outbound"]
+  private_inbound_acl_rules     = local.network_acls["default_inbound"]
+  private_outbound_acl_rules    = local.network_acls["default_outbound"]
   public_inbound_acl_rules = [
     {
       "cidr_block" : "0.0.0.0/0",
