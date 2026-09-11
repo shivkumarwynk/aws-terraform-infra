@@ -48,6 +48,10 @@ jobs:
 
           if [[ "${{ github.event_name }}" == "workflow_dispatch" && -n "${MANUAL_LOCATION:-}" ]]; then
             mapfile -t LOCATIONS < <(MANUAL_LOCATION="${MANUAL_LOCATION}" ./scripts/detect_changed_locations.sh)
+            if [[ "${#LOCATIONS[@]}" -eq 0 ]]; then
+              echo "Invalid location '${MANUAL_LOCATION}': not a Terraform stack directory."
+              exit 1
+            fi
           elif [[ "${{ github.event_name }}" == "pull_request" ]]; then
             git fetch origin "${{ github.base_ref }}" --depth=1
             mapfile -t LOCATIONS < <(./scripts/detect_changed_locations.sh "origin/${{ github.base_ref }}" HEAD)

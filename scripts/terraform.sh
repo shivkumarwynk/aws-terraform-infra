@@ -12,15 +12,17 @@ set -euo pipefail
 #   MANUAL_LOCATION   single directory (e.g. enterprise/ec2)
 #   otherwise         scripts/locations.txt (one directory per line)
 #
-# Credentials (first match wins):
-#   1. AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY already in the environment
-#   2. <ACCOUNT>_AWS_ACCESS_KEY_ID and <ACCOUNT>_AWS_SECRET_ACCESS_KEY
+# Credentials (per stack; account-prefixed vars always win for that folder):
+#   1. <ACCOUNT>_AWS_ACCESS_KEY_ID and <ACCOUNT>_AWS_SECRET_ACCESS_KEY
 #      e.g. ENTERPRISE_AWS_ACCESS_KEY_ID for folder enterprise/
-#   Region: <ACCOUNT>_AWS_REGION, else AWS_REGION, else ap-south-1
+#   2. Otherwise the original AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY
+#   Region: <ACCOUNT>_AWS_REGION, else original AWS_REGION, else ap-south-1
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 LOCATIONS_FILE="${REPO_ROOT}/scripts/locations.txt"
-DEFAULT_REGION="${AWS_DEFAULT_REGION:-${AWS_REGION:-ap-south-1}}"
+GENERIC_AWS_ACCESS_KEY_ID="${AWS_ACCESS_KEY_ID:-}"
+GENERIC_AWS_SECRET_ACCESS_KEY="${AWS_SECRET_ACCESS_KEY:-}"
+GENERIC_AWS_REGION="${AWS_DEFAULT_REGION:-${AWS_REGION:-ap-south-1}}"
 
 COMMAND="${1:-}"
 BRANCH="${2:-${GITHUB_REF_NAME:-}}"
@@ -47,17 +49,21 @@ set_aws_credentials_for_location() {
   secret_var="${prefix}_AWS_SECRET_ACCESS_KEY"
   region_var="${prefix}_AWS_REGION"
 
-  if [[ -z "${AWS_ACCESS_KEY_ID:-}" && -n "${!key_var:-}" ]]; then
+  if [[ -n "${!key_var:-}" ]]; then
     export AWS_ACCESS_KEY_ID="${!key_var}"
+  else
+    export AWS_ACCESS_KEY_ID="${GENERIC_AWS_ACCESS_KEY_ID}"
   fi
-  if [[ -z "${AWS_SECRET_ACCESS_KEY:-}" && -n "${!secret_var:-}" ]]; then
+  if [[ -n "${!secret_var:-}" ]]; then
     export AWS_SECRET_ACCESS_KEY="${!secret_var}"
+  else
+    export AWS_SECRET_ACCESS_KEY="${GENERIC_AWS_SECRET_ACCESS_KEY}"
   fi
 
   if [[ -n "${!region_var:-}" ]]; then
     export AWS_DEFAULT_REGION="${!region_var}"
   else
-    export AWS_DEFAULT_REGION="${DEFAULT_REGION}"
+    export AWS_DEFAULT_REGION="${GENERIC_AWS_REGION}"
   fi
   export AWS_REGION="${AWS_DEFAULT_REGION}"
 
