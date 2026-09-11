@@ -62,11 +62,11 @@ module "vpc" {
     },
     {
       "cidr_block" : "0.0.0.0/0",
-      "from_port" : 0,
+      "from_port" : 1024,
       "protocol" : "-1",
       "rule_action" : "allow",
       "rule_number" : 98,
-      "to_port" : 0
+      "to_port" : 65535
     }
 
   ]
