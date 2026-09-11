@@ -3,7 +3,7 @@ provider "aws" {
 }
 
 locals {
-  common = jsondecode(file("${path.module}/../common/config.json"))
+  common = jsondecode(file("${path.module}/../../common/config.json"))
 
   region               = coalesce(var.region, local.common.region)
   workload_name        = coalesce(var.name, local.common.alb.name)
@@ -92,7 +92,7 @@ locals {
 }
 
 module "network" {
-  source = "../../modules/v1/terraform-aws-network-lookup"
+  source = "../../../modules/v1/terraform-aws-network-lookup"
 
   vpc_name = local.vpc_name
   subnet_names = {
@@ -105,7 +105,7 @@ module "network" {
 ################################################################################
 
 module "alb_external" {
-  source = "../../modules/v1/terraform-aws-alb"
+  source = "../../../modules/v1/terraform-aws-alb"
 
   create = var.create_external_alb
 
@@ -187,7 +187,7 @@ module "alb_external" {
 ################################################################################
 
 module "alb_internal" {
-  source = "../../modules/v1/terraform-aws-alb"
+  source = "../../../modules/v1/terraform-aws-alb"
 
   create = var.create_internal_alb
 

@@ -3,11 +3,11 @@ provider "aws" {
 }
 
 locals {
-  common = jsondecode(file("${path.module}/../common/config.json"))
+  common = jsondecode(file("${path.module}/../../common/config.json"))
 }
 
 #module "s3_bucket_for_logs" {
-#  source = "../../modules/v1/terraform-aws-s3-bucket"
+#  source = "../../../modules/v1/terraform-aws-s3-bucket"
 
 #  bucket = "my-s3qdw3e-bucket-for-logs"
 
@@ -22,7 +22,7 @@ locals {
 #}
 #####################
 #module "s3_bucket" {
-#  source = "../../modules/v1/terraform-aws-s3-bucket"
+#  source = "../../../modules/v1/terraform-aws-s3-bucket"
 
 #  bucket = "my-s3asqwdwe-bucket"
 #  acl    = "private"
@@ -37,7 +37,7 @@ locals {
 
 
 module "ecr" {
-  source = "../../modules/v1/terraform-aws-ecr"
+  source = "../../../modules/v1/terraform-aws-ecr"
 
   repository_name = local.common.registry.repository_name
   repository_lifecycle_policy = jsonencode({

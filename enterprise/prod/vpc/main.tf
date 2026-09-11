@@ -4,7 +4,7 @@ provider "aws" {
 data "aws_availability_zones" "available" {}
 
 locals {
-  common = jsondecode(file("${path.module}/../common/config.json"))
+  common = jsondecode(file("${path.module}/../../common/config.json"))
 
   name     = local.common.network.name
   region   = local.common.region
@@ -23,7 +23,7 @@ locals {
 ################################################################################
 
 module "vpc" {
-  source = "../../modules/v1/aws-vpc"
+  source = "../../../modules/v1/aws-vpc"
 
   name = "${local.name}-${local.env}"
   cidr = local.vpc_cidr
@@ -102,7 +102,7 @@ module "vpc" {
 ################################################################################
 
 module "vpc_endpoints" {
-  source = "../../modules/v1/aws-vpc/modules/vpc-endpoints"
+  source = "../../../modules/v1/aws-vpc/modules/vpc-endpoints"
 
   vpc_id = module.vpc.vpc_id
 
@@ -181,7 +181,7 @@ module "vpc_endpoints" {
 }
 
 module "vpc_endpoints_nocreate" {
-  source = "../../modules/v1/aws-vpc/modules/vpc-endpoints"
+  source = "../../../modules/v1/aws-vpc/modules/vpc-endpoints"
 
   create = false
 }
