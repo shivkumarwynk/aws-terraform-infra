@@ -16,38 +16,20 @@ variable "env" {
   default     = "prod"
 }
 
-variable "vpc_id" {
-  description = "VPC ID. If null, the VPC is looked up by var.vpc_name"
-  type        = string
-  default     = null
-}
-
 variable "vpc_name" {
-  description = "Name tag of the VPC when vpc_id is not set (matches enterprise/vpc-prod module name)"
+  description = "Name tag of the VPC created by enterprise/vpc-prod"
   type        = string
   default     = "wynk-prod"
 }
 
-variable "public_subnet_ids" {
-  description = "Public subnet IDs for the internet-facing ALB. Empty list looks up var.public_subnet_names"
-  type        = list(string)
-  default     = []
-}
-
-variable "private_subnet_ids" {
-  description = "Private subnet IDs for the internal ALB. Empty list looks up var.private_subnet_names"
-  type        = list(string)
-  default     = []
-}
-
 variable "public_subnet_names" {
-  description = "Name tags of public/LB subnets when public_subnet_ids is empty"
+  description = "Name tags of public/LB subnets created by enterprise/vpc-prod"
   type        = list(string)
   default     = ["lb-prod-subnet-1a", "lb-prod-subnet-1b"]
 }
 
 variable "private_subnet_names" {
-  description = "Name tags of private/app subnets when private_subnet_ids is empty"
+  description = "Name tags of private/app subnets created by enterprise/vpc-prod"
   type        = list(string)
   default     = ["app-prod-subnet-1a", "app-prod-subnet-1b"]
 }

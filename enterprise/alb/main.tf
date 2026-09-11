@@ -13,11 +13,10 @@ locals {
   https_enabled          = var.enable_https && var.certificate_arn != ""
   internal_https_enabled = var.enable_internal_https && var.certificate_arn != ""
 
-  vpc                = var.vpc_id == null ? data.aws_vpc.lookup[0] : data.aws_vpc.by_id[0]
-  vpc_id             = local.vpc.id
-  vpc_cidr           = local.vpc.cidr_block
-  public_subnet_ids  = length(var.public_subnet_ids) > 0 ? var.public_subnet_ids : data.aws_subnets.public[0].ids
-  private_subnet_ids = length(var.private_subnet_ids) > 0 ? var.private_subnet_ids : data.aws_subnets.private[0].ids
+  vpc_id             = module.network.vpc_id
+  vpc_cidr           = module.network.vpc_cidr_block
+  public_subnet_ids  = [for name in var.public_subnet_names : module.network.subnet_ids[name]]
+  private_subnet_ids = [for name in var.private_subnet_names : module.network.subnet_ids[name]]
 
   additional_attachments = {
     for idx, id in var.target_ids : "target-${idx}" => {
@@ -84,45 +83,12 @@ locals {
   } : {}
 }
 
-data "aws_vpc" "lookup" {
-  count = var.vpc_id == null ? 1 : 0
+module "network" {
+  source = "../../modules/v1/terraform-aws-network-lookup"
 
-  filter {
-    name   = "tag:Name"
-    values = [var.vpc_name]
-  }
-}
-
-data "aws_vpc" "by_id" {
-  count = var.vpc_id == null ? 0 : 1
-  id    = var.vpc_id
-}
-
-data "aws_subnets" "public" {
-  count = length(var.public_subnet_ids) == 0 ? 1 : 0
-
-  filter {
-    name   = "vpc-id"
-    values = [local.vpc_id]
-  }
-
-  filter {
-    name   = "tag:Name"
-    values = var.public_subnet_names
-  }
-}
-
-data "aws_subnets" "private" {
-  count = length(var.private_subnet_ids) == 0 ? 1 : 0
-
-  filter {
-    name   = "vpc-id"
-    values = [local.vpc_id]
-  }
-
-  filter {
-    name   = "tag:Name"
-    values = var.private_subnet_names
+  vpc_name = var.vpc_name
+  subnet_names = {
+    for name in concat(var.public_subnet_names, var.private_subnet_names) : name => name
   }
 }
 
