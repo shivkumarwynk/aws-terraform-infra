@@ -314,11 +314,11 @@ module "alb_external" {
 
   target_groups = {
     app = {
-      name_prefix      = "appex"
-      protocol         = "HTTP"
-      port             = var.config.alb.target_port
-      target_type      = "instance"
-      vpc_id           = module.vpc.vpc_id
+      name_prefix       = "appex"
+      protocol          = "HTTP"
+      port              = var.config.alb.target_port
+      target_type       = "instance"
+      vpc_id            = module.vpc.vpc_id
       create_attachment = false
       health_check = {
         enabled  = true
@@ -349,11 +349,11 @@ module "alb_internal" {
 
   target_groups = {
     app = {
-      name_prefix      = "appin"
-      protocol         = "HTTP"
-      port             = var.config.alb.target_port
-      target_type      = "instance"
-      vpc_id           = module.vpc.vpc_id
+      name_prefix       = "appin"
+      protocol          = "HTTP"
+      port              = var.config.alb.target_port
+      target_type       = "instance"
+      vpc_id            = module.vpc.vpc_id
       create_attachment = false
       health_check = {
         enabled  = true
