@@ -17,6 +17,28 @@ locals {
     Name        = "${local.name}-${local.env}"
     environment = local.env
   })
+  network_acls = {
+    default_inbound = [
+      {
+        rule_number = 900
+        rule_action = "allow"
+        from_port   = 1024
+        to_port     = 65535
+        protocol    = "tcp"
+        cidr_block  = "0.0.0.0/0"
+      },
+    ]
+    default_outbound = [
+      {
+        rule_number = 900
+        rule_action = "allow"
+        from_port   = 32768
+        to_port     = 65535
+        protocol    = "tcp"
+        cidr_block  = "0.0.0.0/0"
+      },
+    ]
+    }
 }
 
 ################################################################################
@@ -41,7 +63,10 @@ module "vpc" {
   #intra_subnet_names       = ["int-${local.env}-subnet-1a", "int-non-${local.env}-subnet-1b"]
 
   create_database_subnet_group = false
-  manage_default_network_acl   = true
+  manage_default_network_acl   = false
+  private_dedicated_network_acl = true
+  private_inbound_acl_rules  = local.network_acls["default_inbound"]
+  private_outbound_acl_rules = local.network_acls["default_outbound"]
   public_dedicated_network_acl = true
   public_inbound_acl_rules = [
     {
