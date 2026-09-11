@@ -13,17 +13,25 @@ ACCOUNTS_FILE="${REPO_ROOT}/scripts/aws-accounts.txt"
 BASE_REF="${1:-}"
 HEAD_REF="${2:-HEAD}"
 
-is_account() {
-  local candidate="$1"
+load_accounts() {
   local line
+  ACCOUNTS=()
   while IFS= read -r line || [[ -n "${line}" ]]; do
     line="${line%%#*}"
     line="$(echo "${line}" | xargs)"
     [[ -z "${line}" ]] && continue
-    if [[ "${line}" == "${candidate}" ]]; then
+    ACCOUNTS+=("${line}")
+  done < "${ACCOUNTS_FILE}"
+}
+
+is_account() {
+  local candidate="$1"
+  local account
+  for account in "${ACCOUNTS[@]}"; do
+    if [[ "${account}" == "${candidate}" ]]; then
       return 0
     fi
-  done < "${ACCOUNTS_FILE}"
+  done
   return 1
 }
 
@@ -39,11 +47,31 @@ emit_location() {
   [[ -n "${rel}" ]] || return 0
   if is_terraform_dir "${REPO_ROOT}/${rel}"; then
     printf '%s\n' "${rel}"
+    return 0
   fi
+  return 1
 }
 
+list_all_account_stacks() {
+  local account stack_dir rel
+  for account in "${ACCOUNTS[@]}"; do
+    [[ -d "${REPO_ROOT}/${account}" ]] || continue
+    for stack_dir in "${REPO_ROOT}/${account}"/*/; do
+      [[ -d "${stack_dir}" ]] || continue
+      rel="${stack_dir#"${REPO_ROOT}/"}"
+      rel="${rel%/}"
+      emit_location "${rel}" || true
+    done
+  done
+}
+
+load_accounts
+
 if [[ -n "${MANUAL_LOCATION:-}" ]]; then
-  emit_location "${MANUAL_LOCATION}"
+  if ! emit_location "${MANUAL_LOCATION}"; then
+    echo "Invalid MANUAL_LOCATION '${MANUAL_LOCATION}': directory not found or has no .tf files." >&2
+    exit 1
+  fi
   exit 0
 fi
 
@@ -71,9 +99,27 @@ else
   fi
 fi
 
+modules_changed=0
 declare -A seen=()
+locations=()
+
+record_location() {
+  local stack="$1"
+  if [[ -n "${seen[${stack}]+x}" ]]; then
+    return 0
+  fi
+  if emit_location "${stack}"; then
+    seen["${stack}"]=1
+    locations+=("${stack}")
+  fi
+}
+
 for file in "${changed_files[@]}"; do
   [[ -z "${file}" ]] && continue
+  if [[ "${file}" == modules/* ]]; then
+    modules_changed=1
+    continue
+  fi
   account="${file%%/*}"
   if ! is_account "${account}"; then
     continue
@@ -83,8 +129,17 @@ for file in "${changed_files[@]}"; do
   if [[ "${stack}" == "${account}" ]]; then
     continue
   fi
-  if [[ -z "${seen[${stack}]+x}" ]]; then
-    seen["${stack}"]=1
-    emit_location "${stack}"
-  fi
+  record_location "${stack}" >/dev/null
 done
+
+if [[ "${modules_changed}" -eq 1 ]]; then
+  echo "Shared modules changed; including all Terraform stacks under account folders." >&2
+  while IFS= read -r stack || [[ -n "${stack}" ]]; do
+    [[ -z "${stack}" ]] && continue
+    record_location "${stack}" >/dev/null
+  done < <(list_all_account_stacks)
+fi
+
+if [[ "${#locations[@]}" -gt 0 ]]; then
+  printf '%s\n' "${locations[@]}"
+fi
