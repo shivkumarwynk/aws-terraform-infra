@@ -2,9 +2,9 @@ name: Terraform AWS
 
 on:
   push:
-    branches: [main, master, dev]
+    branches: [dev]
   pull_request:
-    branches: [main, master, dev]
+    branches: [main, master]
   workflow_dispatch:
     inputs:
       location:
@@ -119,7 +119,7 @@ jobs:
           PY
 
   terraform:
-    name: ${{ matrix.command }} ${{ matrix.location }}
+    name: Terraform-${{ matrix.command }} ${{ matrix.location }}
     needs: detect
     if: needs.detect.outputs.has_locations == 'true'
     runs-on: ubuntu-latest
