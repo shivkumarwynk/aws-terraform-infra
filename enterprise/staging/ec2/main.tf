@@ -5,19 +5,30 @@ provider "aws" {
 locals {
   common = jsondecode(file("${path.module}/../../common/config.json"))
 
-  name   = local.common.ec2.name
-  region = local.common.region
-  env    = local.common.ec2.environment
-
-  subnet_names         = merge(local.common.network.ec2_subnet_names, var.subnet_names)
-  security_group_names = merge(local.common.network.security_group_names, var.security_group_names)
-  common_tags          = merge(local.common.tags, { Environment = local.env })
+  name             = "enterprise"
+  region           = local.common.region
+  env              = basename(dirname(abspath(path.module)))
+  vpc_config       = local.common.environments[local.env].vpc
+  ami              = "ami-019715e0d74f695be"
+  key_name         = "wynk-staging"
+  instance_profile = "wynk-staging"
+  subnet_names = merge({
+    vpn     = "lb-${local.env}-subnet-1a"
+    jenkins = "app-${local.env}-subnet-1a"
+    mongo   = "app-${local.env}-subnet-1b"
+  }, var.subnet_names)
+  security_group_names = merge({
+    vpn     = "${local.vpc_config.name}-${local.env}-vpn"
+    jenkins = "${local.vpc_config.name}-${local.env}-app"
+    mongo   = "${local.vpc_config.name}-mongo-${local.env}-db"
+  }, var.security_group_names)
+  common_tags = merge(local.common.tags, { Environment = local.env })
 }
 
 module "network" {
   source = "../../../modules/v1/terraform-aws-network-lookup"
 
-  vpc_name             = coalesce(var.vpc_name, local.common.network.vpc_name)
+  vpc_name             = coalesce(var.vpc_name, "${local.vpc_config.name}-${local.env}")
   subnet_names         = local.subnet_names
   security_group_names = local.security_group_names
 }
@@ -30,12 +41,12 @@ module "ec2_instance_vpn" {
   name = "${local.env}-${each.key}"
 
   instance_type = "t3a.medium"
-  key_name      = local.common.ec2.key_name
+  key_name      = local.key_name
   monitoring    = false
   subnet_id     = module.network.subnet_ids["vpn"]
-  ami           = local.common.ec2.ami
+  ami           = local.ami
   # ami = "ami-0848881f2a3dcebd1"
-  iam_instance_profile   = local.common.ec2.iam_instance_profile
+  iam_instance_profile   = local.instance_profile
   vpc_security_group_ids = [module.network.security_group_ids["vpn"]]
   tags = merge(local.common_tags, {
     sprintoValue = "notprod"
@@ -50,11 +61,11 @@ module "ec2_instance_jenkins" {
   name = "${local.env}-${each.key}"
 
   instance_type          = "t3a.small"
-  key_name               = local.common.ec2.key_name
+  key_name               = local.key_name
   monitoring             = false
   subnet_id              = module.network.subnet_ids["jenkins"]
-  ami                    = local.common.ec2.ami
-  iam_instance_profile   = local.common.ec2.iam_instance_profile
+  ami                    = local.ami
+  iam_instance_profile   = local.instance_profile
   vpc_security_group_ids = [module.network.security_group_ids["jenkins"]]
   tags = merge(local.common_tags, {
     sprintoValue = "notprod"
@@ -69,11 +80,11 @@ module "ec2_instance_mongo" {
   name = "${local.env}-${each.key}"
 
   instance_type          = "t3a.small"
-  key_name               = local.common.ec2.key_name
+  key_name               = local.key_name
   monitoring             = false
   subnet_id              = module.network.subnet_ids["mongo"]
-  ami                    = local.common.ec2.ami
-  iam_instance_profile   = local.common.ec2.iam_instance_profile
+  ami                    = local.ami
+  iam_instance_profile   = local.instance_profile
   vpc_security_group_ids = [module.network.security_group_ids["mongo"]]
   tags = merge(local.common_tags, {
     sprintoValue = "notprod"
