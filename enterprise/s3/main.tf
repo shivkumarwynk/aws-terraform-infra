@@ -11,11 +11,11 @@ locals {
 
 #  bucket = "my-s3qdw3e-bucket-for-logs"
 
-  # Allow deletion of non-empty bucket
- # force_destroy = true
+# Allow deletion of non-empty bucket
+# force_destroy = true
 
- # control_object_ownership = true
- # object_ownership         = "ObjectWriter"
+# control_object_ownership = true
+# object_ownership         = "ObjectWriter"
 
 #  attach_elb_log_delivery_policy = true  # Required for ALB logs
 #  attach_lb_log_delivery_policy  = true  # Required for ALB/NLB logs

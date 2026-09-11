@@ -29,10 +29,10 @@ module "vpc" {
   name = "${local.name}-${local.env}"
   cidr = local.vpc_cidr
 
-  azs                 = local.azs
-  private_subnets     = [for k, v in local.azs : cidrsubnet(local.vpc_cidr, 4, k)]
-  public_subnets      = [for k, v in local.azs : cidrsubnet(local.vpc_cidr, 8, k + 32)]
-  database_subnets    = [for k, v in local.azs : cidrsubnet(local.vpc_cidr, 8, k + 34)]
+  azs              = local.azs
+  private_subnets  = [for k, v in local.azs : cidrsubnet(local.vpc_cidr, 4, k)]
+  public_subnets   = [for k, v in local.azs : cidrsubnet(local.vpc_cidr, 8, k + 32)]
+  database_subnets = [for k, v in local.azs : cidrsubnet(local.vpc_cidr, 8, k + 34)]
   #intra_subnets       = [for k, v in local.azs : cidrsubnet(local.vpc_cidr, 8, k + 36)]
 
   private_subnet_names  = local.common.network.subnet_names.private
@@ -40,46 +40,46 @@ module "vpc" {
   database_subnet_names = local.common.network.subnet_names.database
   #intra_subnet_names       = ["int-${local.env}-subnet-1a", "int-non-${local.env}-subnet-1b"]
 
-  create_database_subnet_group  = false
-  manage_default_network_acl    = true
+  create_database_subnet_group = false
+  manage_default_network_acl   = true
   public_dedicated_network_acl = true
-  public_inbound_acl_rules     =  [
+  public_inbound_acl_rules = [
     {
-    "cidr_block": "0.0.0.0/0",
-    "from_port": 80,
-    "protocol": "tcp",
-    "rule_action": "allow",
-    "rule_number": 100,
-    "to_port": 80
+      "cidr_block" : "0.0.0.0/0",
+      "from_port" : 80,
+      "protocol" : "tcp",
+      "rule_action" : "allow",
+      "rule_number" : 100,
+      "to_port" : 80
     },
     {
-    "cidr_block": "0.0.0.0/0",
-    "from_port": 443,
-    "protocol": "tcp",
-    "rule_action": "allow",
-    "rule_number": 101,
-    "to_port": 443
+      "cidr_block" : "0.0.0.0/0",
+      "from_port" : 443,
+      "protocol" : "tcp",
+      "rule_action" : "allow",
+      "rule_number" : 101,
+      "to_port" : 443
     },
     {
-    "cidr_block": "0.0.0.0/0",
-    "from_port": 0,
-    "protocol": "-1",
-    "rule_action": "allow",
-    "rule_number": 98,
-    "to_port": 0
-  }
-    
+      "cidr_block" : "0.0.0.0/0",
+      "from_port" : 0,
+      "protocol" : "-1",
+      "rule_action" : "allow",
+      "rule_number" : 98,
+      "to_port" : 0
+    }
+
   ]
-  public_outbound_acl_rules  = [
-  {
-    "cidr_block": "0.0.0.0/0",
-    "from_port": 0,
-    "protocol": "-1",
-    "rule_action": "allow",
-    "rule_number": 100,
-    "to_port": 0
-  }
-]
+  public_outbound_acl_rules = [
+    {
+      "cidr_block" : "0.0.0.0/0",
+      "from_port" : 0,
+      "protocol" : "-1",
+      "rule_action" : "allow",
+      "rule_number" : 100,
+      "to_port" : 0
+    }
+  ]
   manage_default_route_table    = false
   manage_default_security_group = false
 
@@ -152,13 +152,13 @@ module "vpc_endpoints" {
       service             = "ecs-telemetry"
       private_dns_enabled = true
       subnet_ids          = module.vpc.private_subnets
-      tags = { Name = "ecs-telemetry-vpc-endpoint-${local.env}" }
+      tags                = { Name = "ecs-telemetry-vpc-endpoint-${local.env}" }
     },
     ecr_api = {
       service             = "ecr.api"
       private_dns_enabled = true
       subnet_ids          = module.vpc.private_subnets
-      tags = { Name = "ecr-api-vpc-endpoint-${local.env}" }
+      tags                = { Name = "ecr-api-vpc-endpoint-${local.env}" }
     },
     ecr_dkr = {
       service             = "ecr.dkr"
@@ -172,7 +172,7 @@ module "vpc_endpoints" {
       private_dns_enabled = true
       subnet_ids          = module.vpc.private_subnets
       security_group_ids  = [aws_security_group.rds.id]
-      tags = { Name = "rds-endpoint-${local.env}" }
+      tags                = { Name = "rds-endpoint-${local.env}" }
     },
   }
 
@@ -234,7 +234,7 @@ data "aws_iam_policy_document" "generic_endpoint_policy" {
 
 
 resource "aws_security_group" "rds" {
-  name = "${local.name}-${local.env}-db"
+  name        = "${local.name}-${local.env}-db"
   description = "Allow MySQL inbound traffic"
   vpc_id      = module.vpc.vpc_id
 
@@ -254,7 +254,7 @@ resource "aws_security_group" "rds" {
 }
 #############
 resource "aws_security_group" "db" {
-  name = "${local.name}-mongo-${local.env}-db"
+  name        = "${local.name}-mongo-${local.env}-db"
   description = "Allow mongodb inbound traffic"
   vpc_id      = module.vpc.vpc_id
 
@@ -297,7 +297,7 @@ resource "aws_security_group" "db" {
 #########SG#########
 ##################
 resource "aws_security_group" "alb" {
-  name = "${local.name}-alb-${local.env}"
+  name        = "${local.name}-alb-${local.env}"
   description = "Allow alb inbound traffic"
   vpc_id      = module.vpc.vpc_id
 
@@ -337,7 +337,7 @@ resource "aws_security_group" "alb" {
 
 #############
 resource "aws_security_group" "app" {
-  name = "${local.name}-${local.env}-app"
+  name        = "${local.name}-${local.env}-app"
   description = "Allow prod app inbound traffic"
   vpc_id      = module.vpc.vpc_id
 
@@ -355,7 +355,7 @@ resource "aws_security_group" "app" {
     protocol    = "tcp"
     cidr_blocks = [module.vpc.vpc_cidr_block]
   }
-   ingress {
+  ingress {
     description = "efs from VPC"
     from_port   = 2049
     to_port     = 2049
@@ -368,7 +368,7 @@ resource "aws_security_group" "app" {
     to_port     = 0
     protocol    = "-1"
     cidr_blocks = [module.vpc.vpc_cidr_block]
-  }  
+  }
   ingress {
     description = "ssh from VPC"
     from_port   = 22
@@ -394,7 +394,7 @@ resource "aws_security_group" "app" {
 
 
 resource "aws_security_group" "vpn" {
-  name = "${local.name}-${local.env}-vpn"
+  name        = "${local.name}-${local.env}-vpn"
   description = "Allow prod vpn inbound traffic"
   vpc_id      = module.vpc.vpc_id
 
