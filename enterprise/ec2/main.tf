@@ -23,8 +23,8 @@ locals {
 module "network" {
   source = "../../modules/v1/terraform-aws-network-lookup"
 
-  vpc_name            = var.vpc_name
-  subnet_names        = merge(local.subnet_names, var.subnet_names)
+  vpc_name             = var.vpc_name
+  subnet_names         = merge(local.subnet_names, var.subnet_names)
   security_group_names = merge(local.security_group_names, var.security_group_names)
 }
 
@@ -41,7 +41,7 @@ module "ec2_instance_vpn" {
   subnet_id     = module.network.subnet_ids["vpn"]
   ami           = "ami-019715e0d74f695be"
   # ami = "ami-0848881f2a3dcebd1"
-  iam_instance_profile  = "wynk-staging"
+  iam_instance_profile   = "wynk-staging"
   vpc_security_group_ids = [module.network.security_group_ids["vpn"]]
   tags = {
     Terraform    = "true"
@@ -51,18 +51,18 @@ module "ec2_instance_vpn" {
 }
 
 module "ec2_instance_jenkins" {
-  source  = "../../modules/v1/terraform-aws-ec2-instance"
+  source = "../../modules/v1/terraform-aws-ec2-instance"
 
   for_each = toset(["jenkins"])
 
   name = "staging-${each.key}"
 
-  instance_type = "t3a.small"
-  key_name      = "wynk-staging"
-  monitoring    = false
-  subnet_id     = module.network.subnet_ids["jenkins"]
-  ami           = "ami-019715e0d74f695be"
-  iam_instance_profile  = "wynk-staging"
+  instance_type          = "t3a.small"
+  key_name               = "wynk-staging"
+  monitoring             = false
+  subnet_id              = module.network.subnet_ids["jenkins"]
+  ami                    = "ami-019715e0d74f695be"
+  iam_instance_profile   = "wynk-staging"
   vpc_security_group_ids = [module.network.security_group_ids["jenkins"]]
   tags = {
     Terraform    = "true"
@@ -72,18 +72,18 @@ module "ec2_instance_jenkins" {
 }
 
 module "ec2_instance_mongo" {
-  source  = "../../modules/v1/terraform-aws-ec2-instance"
+  source = "../../modules/v1/terraform-aws-ec2-instance"
 
   for_each = toset(["mongo"])
 
   name = "staging-${each.key}"
 
-  instance_type = "t3a.small"
-  key_name      = "wynk-staging"
-  monitoring    = false
-  subnet_id     = module.network.subnet_ids["mongo"]
-  ami           = "ami-019715e0d74f695be"
-  iam_instance_profile  = "wynk-staging"
+  instance_type          = "t3a.small"
+  key_name               = "wynk-staging"
+  monitoring             = false
+  subnet_id              = module.network.subnet_ids["mongo"]
+  ami                    = "ami-019715e0d74f695be"
+  iam_instance_profile   = "wynk-staging"
   vpc_security_group_ids = [module.network.security_group_ids["mongo"]]
   tags = {
     Terraform    = "true"
