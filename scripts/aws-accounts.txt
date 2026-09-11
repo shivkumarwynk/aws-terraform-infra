@@ -1,0 +1,12 @@
+# Top-level folders that map to separate AWS accounts.
+# For each name, add GitHub Actions secrets:
+#   <NAME>_AWS_ACCESS_KEY_ID
+#   <NAME>_AWS_SECRET_ACCESS_KEY
+# Optional GitHub variable:
+#   <NAME>_AWS_REGION   (defaults to ap-south-1)
+#
+# Example: folder "enterprise" uses ENTERPRISE_AWS_ACCESS_KEY_ID
+#          and ENTERPRISE_AWS_SECRET_ACCESS_KEY
+enterprise
+airtel
+wynk

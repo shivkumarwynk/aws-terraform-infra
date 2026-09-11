@@ -1,0 +1,150 @@
+name: Terraform AWS
+
+on:
+  push:
+    branches: [main, master, dev]
+  pull_request:
+    branches: [main, master, dev]
+  workflow_dispatch:
+    inputs:
+      location:
+        description: Terraform directory (e.g. enterprise/ec2). Leave empty to auto-detect.
+        required: false
+        type: string
+      command:
+        description: Terraform command
+        required: true
+        default: plan
+        type: choice
+        options:
+          - plan
+          - apply
+          - validate
+
+permissions:
+  contents: read
+
+jobs:
+  detect:
+    name: Detect changed locations
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.detect.outputs.matrix }}
+      has_locations: ${{ steps.detect.outputs.has_locations }}
+      command: ${{ steps.detect.outputs.command }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect Terraform stacks
+        id: detect
+        env:
+          MANUAL_LOCATION: ${{ github.event.inputs.location }}
+        run: |
+          set -euo pipefail
+          chmod +x scripts/detect_changed_locations.sh scripts/terraform.sh scripts/terraform_validator.sh scripts/terraform_convert_tf_plan_to_json.sh
+
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" && -n "${MANUAL_LOCATION:-}" ]]; then
+            mapfile -t LOCATIONS < <(MANUAL_LOCATION="${MANUAL_LOCATION}" ./scripts/detect_changed_locations.sh)
+          elif [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            git fetch origin "${{ github.base_ref }}" --depth=1
+            mapfile -t LOCATIONS < <(./scripts/detect_changed_locations.sh "origin/${{ github.base_ref }}" HEAD)
+          elif [[ "${{ github.event_name }}" == "push" ]]; then
+            BEFORE="${{ github.event.before }}"
+            mapfile -t LOCATIONS < <(./scripts/detect_changed_locations.sh "${BEFORE}" "${{ github.sha }}")
+          else
+            mapfile -t LOCATIONS < <(./scripts/detect_changed_locations.sh)
+          fi
+
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            COMMAND="${{ github.event.inputs.command }}"
+          elif [[ "${{ github.ref }}" == "refs/heads/main" || "${{ github.ref }}" == "refs/heads/master" ]]; then
+            COMMAND="apply"
+          else
+            COMMAND="plan"
+          fi
+
+          {
+            echo "command=${COMMAND}"
+          } >> "${GITHUB_OUTPUT}"
+
+          if [[ "${#LOCATIONS[@]}" -eq 0 ]]; then
+            echo "No account Terraform directories changed."
+            echo "has_locations=false" >> "${GITHUB_OUTPUT}"
+            echo "matrix={\"include\":[]}" >> "${GITHUB_OUTPUT}"
+            exit 0
+          fi
+
+          printf '%s\n' "${LOCATIONS[@]}" > scripts/locations.txt
+          echo "Locations:"
+          cat scripts/locations.txt
+
+          python3 - "${COMMAND}" <<'PY'
+          import json
+          import os
+          import pathlib
+          import sys
+
+          command = sys.argv[1]
+          locations = [
+              line.strip().rstrip("/")
+              for line in pathlib.Path("scripts/locations.txt").read_text().splitlines()
+              if line.strip() and not line.strip().startswith("#")
+          ]
+          include = []
+          for location in locations:
+              account = location.split("/", 1)[0]
+              include.append(
+                  {
+                      "location": location,
+                      "account": account,
+                      "secret_prefix": account.upper().replace("-", "_"),
+                      "command": command,
+                  }
+              )
+          matrix = {"include": include}
+          output_path = os.environ["GITHUB_OUTPUT"]
+          with open(output_path, "a", encoding="utf-8") as handle:
+              handle.write("has_locations=true\n")
+              handle.write("matrix=")
+              handle.write(json.dumps(matrix, separators=(",", ":")))
+              handle.write("\n")
+          print(json.dumps(matrix, indent=2))
+          PY
+
+  terraform:
+    name: ${{ matrix.command }} ${{ matrix.location }}
+    needs: detect
+    if: needs.detect.outputs.has_locations == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.detect.outputs.matrix) }}
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets[format('{0}_AWS_ACCESS_KEY_ID', matrix.secret_prefix)] }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets[format('{0}_AWS_SECRET_ACCESS_KEY', matrix.secret_prefix)] }}
+      AWS_DEFAULT_REGION: ${{ vars[format('{0}_AWS_REGION', matrix.secret_prefix)] || 'ap-south-1' }}
+      MANUAL_LOCATION: ${{ matrix.location }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.9.8"
+          terraform_wrapper: false
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ env.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_DEFAULT_REGION }}
+
+      - name: Terraform ${{ matrix.command }}
+        run: |
+          chmod +x scripts/terraform.sh scripts/terraform_validator.sh scripts/terraform_convert_tf_plan_to_json.sh
+          ./scripts/terraform.sh "${{ matrix.command }}" "${{ github.ref_name }}"
