@@ -1,9 +1,8 @@
 provider "aws" {
   region = local.region
 }
-
 locals {
-  name   = "wynk"
+  name   = "enterprise"
   region = "ap-south-1"
   env    = "staging"
 }
