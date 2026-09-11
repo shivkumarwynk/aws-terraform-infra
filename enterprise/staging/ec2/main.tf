@@ -3,7 +3,7 @@ provider "aws" {
 }
 
 locals {
-  common = jsondecode(file("${path.module}/../common/config.json"))
+  common = jsondecode(file("${path.module}/../../common/config.json"))
 
   name   = local.common.ec2.name
   region = local.common.region
@@ -15,7 +15,7 @@ locals {
 }
 
 module "network" {
-  source = "../../modules/v1/terraform-aws-network-lookup"
+  source = "../../../modules/v1/terraform-aws-network-lookup"
 
   vpc_name             = coalesce(var.vpc_name, local.common.network.vpc_name)
   subnet_names         = local.subnet_names
@@ -23,7 +23,7 @@ module "network" {
 }
 
 module "ec2_instance_vpn" {
-  source = "../../modules/v1/terraform-aws-ec2-instance"
+  source = "../../../modules/v1/terraform-aws-ec2-instance"
 
   for_each = toset(["vpn"])
 
@@ -43,7 +43,7 @@ module "ec2_instance_vpn" {
 }
 
 module "ec2_instance_jenkins" {
-  source = "../../modules/v1/terraform-aws-ec2-instance"
+  source = "../../../modules/v1/terraform-aws-ec2-instance"
 
   for_each = toset(["jenkins"])
 
@@ -62,7 +62,7 @@ module "ec2_instance_jenkins" {
 }
 
 module "ec2_instance_mongo" {
-  source = "../../modules/v1/terraform-aws-ec2-instance"
+  source = "../../../modules/v1/terraform-aws-ec2-instance"
 
   for_each = toset(["mongo"])
 

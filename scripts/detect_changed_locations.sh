@@ -54,16 +54,36 @@ emit_location() {
 }
 
 list_all_account_stacks() {
-  local account stack_dir rel
+  local account terraform_file stack
+  local -A emitted=()
+  shopt -s nullglob globstar
   for account in "${ACCOUNTS[@]}"; do
     [[ -d "${REPO_ROOT}/${account}" ]] || continue
-    for stack_dir in "${REPO_ROOT}/${account}"/*/; do
-      [[ -d "${stack_dir}" ]] || continue
-      rel="${stack_dir#"${REPO_ROOT}/"}"
-      rel="${rel%/}"
-      emit_location "${rel}" || true
+    for terraform_file in "${REPO_ROOT}/${account}"/**/*.tf; do
+      stack="$(dirname "${terraform_file}")"
+      stack="${stack#"${REPO_ROOT}/"}"
+      if [[ -z "${emitted[${stack}]+x}" ]]; then
+        emitted["${stack}"]=1
+        emit_location "${stack}" || true
+      fi
     done
   done
+  shopt -u nullglob globstar
+}
+
+find_stack_for_file() {
+  local file="$1"
+  local directory="${file%/*}"
+
+  while [[ "${directory}" == */* ]]; do
+    if is_terraform_dir "${REPO_ROOT}/${directory}"; then
+      printf '%s\n' "${directory}"
+      return 0
+    fi
+    directory="${directory%/*}"
+  done
+
+  return 1
 }
 
 load_accounts
@@ -126,13 +146,14 @@ for file in "${changed_files[@]}"; do
   if ! is_account "${account}"; then
     continue
   fi
-  # Account folder / terraform-stack (e.g. enterprise/ec2)
-  stack="$(printf '%s\n' "${file}" | cut -d/ -f1-2)"
-  changed_stacks["${stack}"]=1
-  if [[ "${stack}" == "${account}" ]]; then
-    continue
+  # Record the environment/common directory for dependency expansion.
+  changed_group="$(printf '%s\n' "${file}" | cut -d/ -f1-2)"
+  changed_stacks["${changed_group}"]=1
+
+  # Support nested roots such as enterprise/prod/vpc.
+  if stack="$(find_stack_for_file "${file}")"; then
+    record_location "${stack}" >/dev/null
   fi
-  record_location "${stack}" >/dev/null
 done
 
 # Add consumers when an upstream stack changed. Format:
