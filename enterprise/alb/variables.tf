@@ -64,8 +64,14 @@ variable "enable_internal_https" {
   default     = false
 }
 
-variable "certificate_arn" {
-  description = "ACM certificate ARN for HTTPS listeners. Leave empty to run HTTP only"
+variable "external_certificate_arn" {
+  description = "ACM certificate ARN for the external HTTPS listener. Leave empty to keep the external ALB HTTP-only"
+  type        = string
+  default     = ""
+}
+
+variable "internal_certificate_arn" {
+  description = "ACM certificate ARN for the internal HTTPS listener. Leave empty to keep the internal ALB HTTP-only"
   type        = string
   default     = ""
 }

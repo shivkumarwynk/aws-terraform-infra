@@ -18,8 +18,8 @@ locals {
     Environment = local.environment
   }, var.tags)
 
-  https_enabled          = var.enable_https && var.certificate_arn != ""
-  internal_https_enabled = var.enable_internal_https && var.certificate_arn != ""
+  https_enabled          = var.enable_https && var.external_certificate_arn != ""
+  internal_https_enabled = var.enable_internal_https && var.internal_certificate_arn != ""
 
   vpc_id             = module.network.vpc_id
   vpc_cidr           = module.network.vpc_cidr_block
@@ -61,7 +61,7 @@ locals {
       port            = 443
       protocol        = "HTTPS"
       ssl_policy      = var.ssl_policy
-      certificate_arn = var.certificate_arn
+      certificate_arn = var.external_certificate_arn
       forward = {
         target_group_key = "app"
       }
@@ -83,7 +83,7 @@ locals {
       port            = 443
       protocol        = "HTTPS"
       ssl_policy      = var.ssl_policy
-      certificate_arn = var.certificate_arn
+      certificate_arn = var.internal_certificate_arn
       forward = {
         target_group_key = "app"
       }
