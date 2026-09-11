@@ -130,6 +130,7 @@ jobs:
       AWS_ACCESS_KEY_ID: ${{ secrets[format('{0}_AWS_ACCESS_KEY_ID', matrix.secret_prefix)] }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets[format('{0}_AWS_SECRET_ACCESS_KEY', matrix.secret_prefix)] }}
       AWS_DEFAULT_REGION: ${{ vars[format('{0}_AWS_REGION', matrix.secret_prefix)] || 'ap-south-1' }}
+      TF_STATE_BUCKET: ${{ vars[format('{0}_TF_STATE_BUCKET', matrix.secret_prefix)] }}
       MANUAL_LOCATION: ${{ matrix.location }}
     steps:
       - name: Checkout

@@ -1,3 +1,5 @@
 # Fallback list of Terraform working directories (one per line).
 # GitHub Actions overwrites this from git-detected changes under account folders.
-enterprise/vpc-prod
+enterprise/dev
+enterprise/staging
+enterprise/prod

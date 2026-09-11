@@ -112,7 +112,18 @@ run_in_directory() {
 
   pushd "${abs}" >/dev/null
 
-  terraform init -input=false -no-color
+  if [[ -n "${TF_STATE_BUCKET:-}" ]]; then
+    terraform init \
+      -input=false \
+      -no-color \
+      -backend-config="bucket=${TF_STATE_BUCKET}" \
+      -backend-config="region=${AWS_REGION}"
+  elif [[ "${COMMAND}" == "validate" ]]; then
+    terraform init -backend=false -input=false -no-color
+  else
+    echo "TF_STATE_BUCKET is required for ${COMMAND}; refusing to use ephemeral local state."
+    return 1
+  fi
 
   case "${COMMAND}" in
     validate)
