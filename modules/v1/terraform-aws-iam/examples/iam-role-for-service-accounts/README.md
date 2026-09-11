@@ -22,20 +22,20 @@ Run `terraform destroy` when you don't need these resources.
 ## Requirements
 
 | Name | Version |
-|------|---------|
+| ---- | ------- |
 | <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.5.7 |
-| <a name="requirement_aws"></a> [aws](#requirement\_aws) | >= 6.0 |
+| <a name="requirement_aws"></a> [aws](#requirement\_aws) | >= 6.28 |
 
 ## Providers
 
 | Name | Version |
-|------|---------|
-| <a name="provider_aws"></a> [aws](#provider\_aws) | >= 6.0 |
+| ---- | ------- |
+| <a name="provider_aws"></a> [aws](#provider\_aws) | >= 6.28 |
 
 ## Modules
 
 | Name | Source | Version |
-|------|--------|---------|
+| ---- | ------ | ------- |
 | <a name="module_amazon_managed_service_prometheus_irsa"></a> [amazon\_managed\_service\_prometheus\_irsa](#module\_amazon\_managed\_service\_prometheus\_irsa) | ../../modules/iam-role-for-service-accounts | n/a |
 | <a name="module_cert_manager_irsa"></a> [cert\_manager\_irsa](#module\_cert\_manager\_irsa) | ../../modules/iam-role-for-service-accounts | n/a |
 | <a name="module_cloudwatch_observability_irsa"></a> [cloudwatch\_observability\_irsa](#module\_cloudwatch\_observability\_irsa) | ../../modules/iam-role-for-service-accounts | n/a |
@@ -49,6 +49,7 @@ Run `terraform destroy` when you don't need these resources.
 | <a name="module_fsx_lustre_csi_irsa"></a> [fsx\_lustre\_csi\_irsa](#module\_fsx\_lustre\_csi\_irsa) | ../../modules/iam-role-for-service-accounts | n/a |
 | <a name="module_fsx_openzfs_csi_irsa"></a> [fsx\_openzfs\_csi\_irsa](#module\_fsx\_openzfs\_csi\_irsa) | ../../modules/iam-role-for-service-accounts | n/a |
 | <a name="module_irsa"></a> [irsa](#module\_irsa) | ../../modules/iam-role-for-service-accounts | n/a |
+| <a name="module_load_balancer_controller_aga_irsa"></a> [load\_balancer\_controller\_aga\_irsa](#module\_load\_balancer\_controller\_aga\_irsa) | ../../modules/iam-role-for-service-accounts | n/a |
 | <a name="module_load_balancer_controller_irsa"></a> [load\_balancer\_controller\_irsa](#module\_load\_balancer\_controller\_irsa) | ../../modules/iam-role-for-service-accounts | n/a |
 | <a name="module_load_balancer_controller_targetgroup_binding_only_irsa"></a> [load\_balancer\_controller\_targetgroup\_binding\_only\_irsa](#module\_load\_balancer\_controller\_targetgroup\_binding\_only\_irsa) | ../../modules/iam-role-for-service-accounts | n/a |
 | <a name="module_mountpoint_s3_csi_irsa"></a> [mountpoint\_s3\_csi\_irsa](#module\_mountpoint\_s3\_csi\_irsa) | ../../modules/iam-role-for-service-accounts | n/a |
@@ -61,7 +62,7 @@ Run `terraform destroy` when you don't need these resources.
 ## Resources
 
 | Name | Type |
-|------|------|
+| ---- | ---- |
 | [aws_iam_policy.additional](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_policy) | resource |
 | [aws_availability_zones.available](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/availability_zones) | data source |
 
@@ -72,7 +73,7 @@ No inputs.
 ## Outputs
 
 | Name | Description |
-|------|-------------|
+| ---- | ----------- |
 | <a name="output_irsa_arn"></a> [irsa\_arn](#output\_irsa\_arn) | ARN of IAM role |
 | <a name="output_irsa_iam_policy"></a> [irsa\_iam\_policy](#output\_irsa\_iam\_policy) | The policy document |
 | <a name="output_irsa_iam_policy_arn"></a> [irsa\_iam\_policy\_arn](#output\_irsa\_iam\_policy\_arn) | The ARN assigned by AWS to this policy |

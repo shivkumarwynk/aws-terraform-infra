@@ -16,6 +16,111 @@ locals {
     Name        = "${local.name}-${local.env}"
     environment = local.env
   })
+  security_groups = {
+    rds = {
+      name        = "${local.name}-${local.env}-db"
+      tag_name    = "${local.name}-${local.env}-rds"
+      description = "Allow MySQL inbound traffic"
+      ingress_rules = {
+        mysql = {
+          description = "MySQL from VPC"
+          from_port   = 3306
+          to_port     = 3306
+          ip_protocol = "tcp"
+          cidr_ipv4   = local.vpc_cidr
+        }
+      }
+    }
+    db = {
+      name        = "${local.name}-mongo-${local.env}-db"
+      tag_name    = "${local.name}-mongo-${local.env}-db"
+      description = "Allow MongoDB, Redis, and SSH inbound traffic"
+      ingress_rules = {
+        mongodb = {
+          description = "MongoDB from VPC"
+          from_port   = 27017
+          to_port     = 27017
+          ip_protocol = "tcp"
+          cidr_ipv4   = local.vpc_cidr
+        }
+        redis = {
+          description = "Redis from VPC"
+          from_port   = 6379
+          to_port     = 6379
+          ip_protocol = "tcp"
+          cidr_ipv4   = local.vpc_cidr
+        }
+        ssh = {
+          description = "SSH from VPC"
+          from_port   = 22
+          to_port     = 22
+          ip_protocol = "tcp"
+          cidr_ipv4   = local.vpc_cidr
+        }
+      }
+    }
+    alb = {
+      name        = "${local.name}-alb-${local.env}"
+      tag_name    = "${local.name}-alb-${local.env}"
+      description = "Allow public HTTP and HTTPS traffic"
+      ingress_rules = {
+        http = {
+          description = "HTTP from internet"
+          from_port   = 80
+          to_port     = 80
+          ip_protocol = "tcp"
+          cidr_ipv4   = "0.0.0.0/0"
+        }
+        https = {
+          description = "HTTPS from internet"
+          from_port   = 443
+          to_port     = 443
+          ip_protocol = "tcp"
+          cidr_ipv4   = "0.0.0.0/0"
+        }
+      }
+    }
+    app = {
+      name        = "${local.name}-${local.env}-app"
+      tag_name    = "${local.name}-${local.env}-app"
+      description = "Allow application traffic from the VPC"
+      ingress_rules = {
+        all_from_vpc = {
+          description = "All traffic from VPC"
+          ip_protocol = "-1"
+          cidr_ipv4   = local.vpc_cidr
+        }
+      }
+    }
+    vpn = {
+      name        = "${local.name}-${local.env}-vpn"
+      tag_name    = "${local.name}-${local.env}-vpn"
+      description = "Allow VPN traffic"
+      ingress_rules = {
+        http = {
+          description = "HTTP from VPC"
+          from_port   = 80
+          to_port     = 80
+          ip_protocol = "tcp"
+          cidr_ipv4   = local.vpc_cidr
+        }
+        https = {
+          description = "HTTPS from VPC"
+          from_port   = 443
+          to_port     = 443
+          ip_protocol = "tcp"
+          cidr_ipv4   = local.vpc_cidr
+        }
+        vpn = {
+          description = "VPN client traffic"
+          from_port   = 16907
+          to_port     = 16907
+          ip_protocol = "tcp"
+          cidr_ipv4   = "0.0.0.0/0"
+        }
+      }
+    }
+  }
   network_acls = {
     default_inbound = [
       {
@@ -195,7 +300,7 @@ module "vpc_endpoints" {
       service             = "rds"
       private_dns_enabled = true
       subnet_ids          = module.vpc.private_subnets
-      security_group_ids  = [aws_security_group.rds.id]
+      security_group_ids  = [module.security_groups["rds"].id]
       tags                = { Name = "rds-endpoint-${local.env}" }
     },
   }
@@ -255,206 +360,31 @@ data "aws_iam_policy_document" "generic_endpoint_policy" {
   }
 }
 
+################################################################################
+# Security groups
+################################################################################
 
+module "security_groups" {
+  source = "../../modules/v1/terraform-aws-security-group"
 
-resource "aws_security_group" "rds" {
-  name        = "${local.name}-${local.env}-db"
-  description = "Allow MySQL inbound traffic"
-  vpc_id      = module.vpc.vpc_id
+  for_each = local.security_groups
 
-  ingress {
-    description = "MySQL from VPC"
-    from_port   = 3306
-    to_port     = 3306
-    protocol    = "tcp"
-    cidr_blocks = [module.vpc.vpc_cidr_block]
-  }
-  tags = merge(
-    {
-      "Name" = "${local.name}-${local.env}-rds"
-    },
-    local.tags,
-  )
-}
-#############
-resource "aws_security_group" "db" {
-  name        = "${local.name}-mongo-${local.env}-db"
-  description = "Allow mongodb inbound traffic"
-  vpc_id      = module.vpc.vpc_id
+  name                   = each.value.name
+  use_name_prefix        = false
+  description            = each.value.description
+  vpc_id                 = module.vpc.vpc_id
+  ingress_rules          = each.value.ingress_rules
+  enable_exclusive_rules = true
 
-  ingress {
-    description = "mongo from VPC"
-    from_port   = 27017
-    to_port     = 27017
-    protocol    = "tcp"
-    cidr_blocks = [module.vpc.vpc_cidr_block]
+  egress_rules = {
+    all = {
+      description = "Allow all outbound traffic"
+      ip_protocol = "-1"
+      cidr_ipv4   = "0.0.0.0/0"
+    }
   }
-  ingress {
-    description = "redis from VPC"
-    from_port   = 6379
-    to_port     = 6379
-    protocol    = "tcp"
-    cidr_blocks = [module.vpc.vpc_cidr_block]
-  }
-  ingress {
-    description = "ssh from VPC"
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
-    cidr_blocks = [module.vpc.vpc_cidr_block]
-  }
-  # Allow all outbound traffic
-  egress {
-    description = "Allow all outbound traffic"
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-  tags = merge(
-    {
-      "Name" = "${local.name}-mongo-${local.env}-db"
-    },
-    local.tags,
-  )
-}
-#########SG#########
-##################
-resource "aws_security_group" "alb" {
-  name        = "${local.name}-alb-${local.env}"
-  description = "Allow alb inbound traffic"
-  vpc_id      = module.vpc.vpc_id
 
-  ingress {
-    description = "alb from VPC"
-    from_port   = 80
-    to_port     = 80
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-  ingress {
-    description = "alb from VPC"
-    from_port   = 443
-    to_port     = 443
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-  # Allow all outbound traffic
-  egress {
-    description = "Allow all outbound traffic"
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-  tags = merge(
-    {
-      "Name" = "${local.name}-alb-${local.env}"
-    },
-    local.tags,
-  )
-}
-
-######
-#############
-
-
-#############
-resource "aws_security_group" "app" {
-  name        = "${local.name}-${local.env}-app"
-  description = "Allow prod app inbound traffic"
-  vpc_id      = module.vpc.vpc_id
-
-  ingress {
-    description = "app from VPC"
-    from_port   = 8080
-    to_port     = 8080
-    protocol    = "tcp"
-    cidr_blocks = [module.vpc.vpc_cidr_block]
-  }
-  ingress {
-    description = "app from VPC"
-    from_port   = 80
-    to_port     = 80
-    protocol    = "tcp"
-    cidr_blocks = [module.vpc.vpc_cidr_block]
-  }
-  ingress {
-    description = "efs from VPC"
-    from_port   = 2049
-    to_port     = 2049
-    protocol    = "tcp"
-    cidr_blocks = [module.vpc.vpc_cidr_block]
-  }
-  ingress {
-    description = "Allow all intbound traffic"
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = [module.vpc.vpc_cidr_block]
-  }
-  ingress {
-    description = "ssh from VPC"
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
-    cidr_blocks = [module.vpc.vpc_cidr_block]
-  }
-  # Allow all outbound traffic
-  egress {
-    description = "Allow all outbound traffic"
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-  tags = merge(
-    {
-      "Name" = "${local.name}-${local.env}-app"
-    },
-    local.tags,
-  )
-}
-
-
-resource "aws_security_group" "vpn" {
-  name        = "${local.name}-${local.env}-vpn"
-  description = "Allow prod vpn inbound traffic"
-  vpc_id      = module.vpc.vpc_id
-
-  ingress {
-    description = "app from VPC"
-    from_port   = 443
-    to_port     = 443
-    protocol    = "tcp"
-    cidr_blocks = [module.vpc.vpc_cidr_block]
-  }
-  ingress {
-    description = "app from VPC"
-    from_port   = 80
-    to_port     = 80
-    protocol    = "tcp"
-    cidr_blocks = [module.vpc.vpc_cidr_block]
-  }
-  ingress {
-    description = "app from VPC"
-    from_port   = 16907
-    to_port     = 16907
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-  # Allow all outbound traffic
-  egress {
-    description = "Allow all outbound traffic"
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-  tags = merge(
-    {
-      "Name" = "${local.name}-${local.env}-vpn"
-    },
-    local.tags,
-  )
+  tags = merge(local.tags, {
+    Name = each.value.tag_name
+  })
 }
