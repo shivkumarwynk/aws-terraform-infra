@@ -1,0 +1,264 @@
+provider "aws" {
+  region = local.region
+}
+
+locals {
+  common = jsondecode(file("${path.module}/../common/config.json"))
+
+  region               = coalesce(var.region, local.common.region)
+  workload_name        = coalesce(var.name, local.common.alb.name)
+  environment          = coalesce(var.env, local.common.alb.environment)
+  vpc_name             = coalesce(var.vpc_name, local.common.network.vpc_name)
+  public_subnet_names  = var.public_subnet_names != null ? var.public_subnet_names : local.common.network.subnet_names.public
+  private_subnet_names = var.private_subnet_names != null ? var.private_subnet_names : local.common.network.subnet_names.private
+
+  name = "${local.workload_name}-${local.environment}"
+  tags = merge(local.common.tags, {
+    Name        = local.name
+    Environment = local.environment
+  }, var.tags)
+
+  https_enabled          = var.enable_https && var.certificate_arn != ""
+  internal_https_enabled = var.enable_internal_https && var.certificate_arn != ""
+
+  vpc_id             = module.network.vpc_id
+  vpc_cidr           = module.network.vpc_cidr_block
+  public_subnet_ids  = [for name in local.public_subnet_names : module.network.subnet_ids[name]]
+  private_subnet_ids = [for name in local.private_subnet_names : module.network.subnet_ids[name]]
+
+  additional_attachments = {
+    for idx, id in var.target_ids : "target-${idx}" => {
+      target_group_key = "app"
+      target_id        = id
+      port             = var.target_port
+    }
+  }
+
+  http_listener_external = var.enable_http ? (
+    local.https_enabled ? {
+      http = {
+        port     = 80
+        protocol = "HTTP"
+        redirect = {
+          port        = "443"
+          protocol    = "HTTPS"
+          status_code = "HTTP_301"
+        }
+      }
+      } : {
+      http = {
+        port     = 80
+        protocol = "HTTP"
+        forward = {
+          target_group_key = "app"
+        }
+      }
+    }
+  ) : {}
+
+  https_listener_external = local.https_enabled ? {
+    https = {
+      port            = 443
+      protocol        = "HTTPS"
+      ssl_policy      = var.ssl_policy
+      certificate_arn = var.certificate_arn
+      forward = {
+        target_group_key = "app"
+      }
+    }
+  } : {}
+
+  http_listener_internal = var.enable_http ? {
+    http = {
+      port     = 80
+      protocol = "HTTP"
+      forward = {
+        target_group_key = "app"
+      }
+    }
+  } : {}
+
+  https_listener_internal = local.internal_https_enabled ? {
+    https = {
+      port            = 443
+      protocol        = "HTTPS"
+      ssl_policy      = var.ssl_policy
+      certificate_arn = var.certificate_arn
+      forward = {
+        target_group_key = "app"
+      }
+    }
+  } : {}
+}
+
+module "network" {
+  source = "../../modules/v1/terraform-aws-network-lookup"
+
+  vpc_name = local.vpc_name
+  subnet_names = {
+    for name in concat(local.public_subnet_names, local.private_subnet_names) : name => name
+  }
+}
+
+################################################################################
+# Internet-facing ALB (external) — HTTP and/or HTTPS
+################################################################################
+
+module "alb_external" {
+  source = "../../modules/v1/terraform-aws-alb"
+
+  create = var.create_external_alb
+
+  name                       = "${local.name}-ext"
+  load_balancer_type         = "application"
+  vpc_id                     = local.vpc_id
+  subnets                    = local.public_subnet_ids
+  internal                   = false
+  enable_deletion_protection = var.enable_deletion_protection
+  enable_http2               = var.enable_http2
+  idle_timeout               = var.idle_timeout
+  drop_invalid_header_fields = var.drop_invalid_header_fields
+  access_logs                = var.access_logs
+
+  security_group_ingress_rules = merge(
+    var.enable_http ? {
+      http = {
+        from_port   = 80
+        to_port     = 80
+        ip_protocol = "tcp"
+        description = "HTTP"
+        cidr_ipv4   = "0.0.0.0/0"
+      }
+    } : {},
+    local.https_enabled ? {
+      https = {
+        from_port   = 443
+        to_port     = 443
+        ip_protocol = "tcp"
+        description = "HTTPS"
+        cidr_ipv4   = "0.0.0.0/0"
+      }
+    } : {}
+  )
+
+  security_group_egress_rules = {
+    all = {
+      ip_protocol = "-1"
+      cidr_ipv4   = "0.0.0.0/0"
+    }
+  }
+
+  listeners = merge(local.http_listener_external, local.https_listener_external)
+
+  target_groups = {
+    app = {
+      name_prefix = "appex"
+      protocol    = "HTTP"
+      port        = var.target_port
+      target_type = "instance"
+      vpc_id      = local.vpc_id
+
+      health_check = {
+        enabled             = true
+        path                = var.health_check_path
+        port                = "traffic-port"
+        protocol            = "HTTP"
+        matcher             = "200-399"
+        interval            = 30
+        timeout             = 5
+        healthy_threshold   = 2
+        unhealthy_threshold = 3
+      }
+
+      protocol_version  = "HTTP1"
+      create_attachment = false
+    }
+  }
+
+  additional_target_group_attachments = local.additional_attachments
+
+  tags = merge(local.tags, {
+    Scheme = "internet-facing"
+  })
+}
+
+################################################################################
+# Internal ALB — private subnets, HTTP by default, optional HTTPS
+################################################################################
+
+module "alb_internal" {
+  source = "../../modules/v1/terraform-aws-alb"
+
+  create = var.create_internal_alb
+
+  name                       = "${local.name}-int"
+  load_balancer_type         = "application"
+  vpc_id                     = local.vpc_id
+  subnets                    = local.private_subnet_ids
+  internal                   = true
+  enable_deletion_protection = var.enable_deletion_protection
+  enable_http2               = var.enable_http2
+  idle_timeout               = var.idle_timeout
+  drop_invalid_header_fields = var.drop_invalid_header_fields
+  access_logs                = var.access_logs
+
+  security_group_ingress_rules = merge(
+    var.enable_http ? {
+      http = {
+        from_port   = 80
+        to_port     = 80
+        ip_protocol = "tcp"
+        description = "HTTP from VPC"
+        cidr_ipv4   = local.vpc_cidr
+      }
+    } : {},
+    local.internal_https_enabled ? {
+      https = {
+        from_port   = 443
+        to_port     = 443
+        ip_protocol = "tcp"
+        description = "HTTPS from VPC"
+        cidr_ipv4   = local.vpc_cidr
+      }
+    } : {}
+  )
+
+  security_group_egress_rules = {
+    all = {
+      ip_protocol = "-1"
+      cidr_ipv4   = "0.0.0.0/0"
+    }
+  }
+
+  listeners = merge(local.http_listener_internal, local.https_listener_internal)
+
+  target_groups = {
+    app = {
+      name_prefix = "appin"
+      protocol    = "HTTP"
+      port        = var.target_port
+      target_type = "instance"
+      vpc_id      = local.vpc_id
+
+      health_check = {
+        enabled             = true
+        path                = var.health_check_path
+        port                = "traffic-port"
+        protocol            = "HTTP"
+        matcher             = "200-399"
+        interval            = 30
+        timeout             = 5
+        healthy_threshold   = 2
+        unhealthy_threshold = 3
+      }
+
+      create_attachment = false
+    }
+  }
+
+  additional_target_group_attachments = local.additional_attachments
+
+  tags = merge(local.tags, {
+    Scheme = "internal"
+  })
+}
