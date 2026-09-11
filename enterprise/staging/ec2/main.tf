@@ -22,7 +22,7 @@ locals {
     jenkins = "${local.vpc_config.name}-${local.env}-app"
     mongo   = "${local.vpc_config.name}-mongo-${local.env}-db"
   }, var.security_group_names)
-  common_tags          = merge(local.common.tags, { Environment = local.env })
+  common_tags = merge(local.common.tags, { Environment = local.env })
 }
 
 module "network" {
