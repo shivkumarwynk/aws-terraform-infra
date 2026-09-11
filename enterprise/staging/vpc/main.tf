@@ -6,7 +6,7 @@ data "aws_availability_zones" "available" {}
 locals {
   common = jsondecode(file("${path.module}/../../common/config.json"))
 
-  env        = basename(dirname(path.module))
+  env        = basename(dirname(abspath(path.module)))
   vpc_config = local.common.environments[local.env].vpc
   name       = local.vpc_config.name
   region     = local.common.region

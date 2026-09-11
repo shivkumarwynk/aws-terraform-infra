@@ -5,7 +5,7 @@ provider "aws" {
 locals {
   common = jsondecode(file("${path.module}/../../common/config.json"))
 
-  default_environment  = basename(dirname(path.module))
+  default_environment  = basename(dirname(abspath(path.module)))
   environment          = coalesce(var.env, local.default_environment)
   vpc_config           = local.common.environments[local.environment].vpc
   region               = coalesce(var.region, local.common.region)

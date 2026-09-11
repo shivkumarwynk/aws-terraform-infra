@@ -7,7 +7,7 @@ locals {
 
   name             = "enterprise"
   region           = local.common.region
-  env              = basename(dirname(path.module))
+  env              = basename(dirname(abspath(path.module)))
   vpc_config       = local.common.environments[local.env].vpc
   ami              = "ami-019715e0d74f695be"
   key_name         = "wynk-staging"
