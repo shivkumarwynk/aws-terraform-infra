@@ -1,0 +1,13 @@
+.terraform/
+*.tfplan
+terraform.json
+VIOLATIONS.txt
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+*.tfstate
+*.tfstate.*
+.DS_Store

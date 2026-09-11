@@ -1,16 +1,39 @@
-terraform validate
-POLICY_LIBRARY="/workspace/policy-library"
-VIOLATIONS=$(gcloud beta terraform vet terraform.json --policy-library=$POLICY_LIBRARY --format=json)
-retVal=$?
-if [ $retVal -eq 2 ]; then
-  # Optional: parse the VIOLATIONS variable as json and check the severity level
-  echo "$VIOLATIONS" > VIOLATIONS.txt
-  echo "Violations found; not proceeding with terraform apply"
-  exit 1
-fi
-if [ $retVal -ne 0 ]; then
-  echo "Error during gcloud beta terraform vet; not proceeding with terraform apply"
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Validate a terraform show -json plan file (terraform.json) before apply.
+
+if [[ ! -f terraform.json ]]; then
+  echo "terraform.json not found; run terraform plan and convert it first."
   exit 1
 fi
 
-echo "No policy violations detected; proceeding with terraform apply"
+terraform validate -no-color
+
+if ! python3 - "${PWD}/terraform.json" <<'PY'
+import json
+import sys
+
+path = sys.argv[1]
+try:
+    with open(path, encoding="utf-8") as handle:
+        plan = json.load(handle)
+except json.JSONDecodeError as exc:
+    print(f"terraform.json is not valid JSON: {exc}")
+    sys.exit(1)
+
+if not isinstance(plan, dict) or "format_version" not in plan:
+    print("terraform.json does not look like a terraform show -json plan")
+    sys.exit(1)
+
+errored = plan.get("errored")
+if errored:
+    print("Terraform plan is in an errored state; not proceeding")
+    sys.exit(1)
+
+print("Terraform plan JSON is valid; no AWS plan errors detected")
+PY
+then
+  echo "Terraform plan validation failed; not proceeding"
+  exit 1
+fi
