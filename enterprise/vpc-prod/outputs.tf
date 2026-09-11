@@ -68,6 +68,11 @@ output "vpc_owner_id" {
   value       = module.vpc.vpc_owner_id
 }
 
+output "security_group_ids" {
+  description = "Map of managed enterprise security group IDs"
+  value       = { for key, security_group in module.security_groups : key => security_group.id }
+}
+
 output "private_subnets" {
   description = "List of IDs of private subnets"
   value       = module.vpc.private_subnets

@@ -2,6 +2,42 @@
 
 All notable changes to this project will be documented in this file.
 
+## [6.0.0](https://github.com/terraform-aws-modules/terraform-aws-security-group/compare/v5.3.1...v6.0.0) (2026-06-03)
+
+### ⚠ BREAKING CHANGES
+
+* input variable names and shape change wholesale. v5
+named-rule strings (ingress_rules = ["postgresql-tcp"]) are replaced by
+structured rule objects keyed in security_group_ingress_rules. The v5
+ingress_with_self / ingress_with_cidr_blocks / ingress_with_*  /
+computed_* / number_of_computed_* families collapse into the single
+structured map. v5 submodules' default-open-to-0.0.0.0/0 and default
+all-all egress / self behaviors are removed; callers must opt in
+explicitly. enable_exclusive_rules defaults to true and will revert
+out-of-band rules unless set to false. Several submodule paths are
+renamed and several are retired (see above). var.name no longer has
+a default; callers must supply it.
+
+* chore: address v6 rewrite PR feedback
+
+- examples/complete: replace em-dash in description (AWS rejects non-ASCII)
+- generate/templates: switch composite key separator from `-` to `/` to
+  prevent collisions when preset names or source keys contain `-`
+- root + submodule template: add plan-time validation that exactly one
+  source (cidr_ipv4 / cidr_ipv6 / prefix_list_id /
+  referenced_security_group_id) is set per rule
+- README: document the `referenced_security_group_id = "self"` sentinel
+  and the `use_name_prefix` / `create_before_destroy` interaction
+- UPGRADE-6.0.md: note that the SG no longer receives an implicit
+  `Name` tag set to `var.name`
+- workflows: pin terraform-docs to v0.20.0 to match other modules, run
+  generator drift check on direct push to main/master, bump
+  pre-commit-terraform to v1.106.0 and regenerate wrappers
+
+### Features
+
+* Rewrite for AWS provider v6 resources ([#355](https://github.com/terraform-aws-modules/terraform-aws-security-group/issues/355)) ([9ef2af2](https://github.com/terraform-aws-modules/terraform-aws-security-group/commit/9ef2af2039c8651343eb967a3e0c0a20d324b169))
+
 ## [5.3.1](https://github.com/terraform-aws-modules/terraform-aws-security-group/compare/v5.3.0...v5.3.1) (2025-10-21)
 
 ### Bug Fixes

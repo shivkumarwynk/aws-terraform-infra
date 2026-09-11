@@ -2,6 +2,55 @@
 
 All notable changes to this project will be documented in this file.
 
+## [6.8.1](https://github.com/terraform-aws-modules/terraform-aws-iam/compare/v6.8.0...v6.8.1) (2026-08-28)
+
+### Bug Fixes
+
+* Split LBC AGA policy into its own managed policy ([#654](https://github.com/terraform-aws-modules/terraform-aws-iam/issues/654)) ([b653d77](https://github.com/terraform-aws-modules/terraform-aws-iam/commit/b653d7727a6dc4ad8ba822952bccb7ee812cd4ef))
+* Update GitHub Actions and pre-commit hook versions ([#655](https://github.com/terraform-aws-modules/terraform-aws-iam/issues/655)) ([e99ede9](https://github.com/terraform-aws-modules/terraform-aws-iam/commit/e99ede9b75b834a0279839250f111aecc7b664a6))
+
+## [6.8.0](https://github.com/terraform-aws-modules/terraform-aws-iam/compare/v6.7.0...v6.8.0) (2026-07-28)
+
+### Features
+
+* Add DescribeSubnets and DescribeSecurityGroups permissions to VPC CNI IPv6 IAM policy ([#652](https://github.com/terraform-aws-modules/terraform-aws-iam/issues/652)) ([2e7eca6](https://github.com/terraform-aws-modules/terraform-aws-iam/commit/2e7eca66030a966071a469a80db492c4cb6ae885))
+
+## [6.7.0](https://github.com/terraform-aws-modules/terraform-aws-iam/compare/v6.6.1...v6.7.0) (2026-07-28)
+
+### Features
+
+* Add AWS Load Balancer Controller AGA policy for v3.4 ([#653](https://github.com/terraform-aws-modules/terraform-aws-iam/issues/653)) ([2a12e1d](https://github.com/terraform-aws-modules/terraform-aws-iam/commit/2a12e1da98b40fa366e65d15cadbd4a10e5f402b))
+
+## [6.6.1](https://github.com/terraform-aws-modules/terraform-aws-iam/compare/v6.6.0...v6.6.1) (2026-05-28)
+
+### Bug Fixes
+
+* Add missing `ec2:DescribeSecurityGroups` IPv4 VPC CNI IRSA permissions ([#646](https://github.com/terraform-aws-modules/terraform-aws-iam/issues/646)) ([10161bc](https://github.com/terraform-aws-modules/terraform-aws-iam/commit/10161bc239d60571c618bc8bd251a11576d4c3e0))
+
+## [6.6.0](https://github.com/terraform-aws-modules/terraform-aws-iam/compare/v6.5.0...v6.6.0) (2026-04-29)
+
+### Features
+
+* Add support for merging trust policy documents ([#643](https://github.com/terraform-aws-modules/terraform-aws-iam/issues/643)) ([9eba5f2](https://github.com/terraform-aws-modules/terraform-aws-iam/commit/9eba5f23bc711495971f05d23f2fa575bfcc9fbd))
+
+## [6.5.0](https://github.com/terraform-aws-modules/terraform-aws-iam/compare/v6.4.0...v6.5.0) (2026-04-24)
+
+### Features
+
+* Add `ec2:DescribeInstanceTypes` to EBS CSI driver policy ([#641](https://github.com/terraform-aws-modules/terraform-aws-iam/issues/641)) ([6d1fa27](https://github.com/terraform-aws-modules/terraform-aws-iam/commit/6d1fa277408157be2a335db43765d7567713bc9c))
+
+## [6.4.0](https://github.com/terraform-aws-modules/terraform-aws-iam/compare/v6.3.0...v6.4.0) (2026-01-23)
+
+### Features
+
+* Update IAM policy for AWS Gateway API Controller to v2.0.0 ([#634](https://github.com/terraform-aws-modules/terraform-aws-iam/issues/634)) ([0f4c1c7](https://github.com/terraform-aws-modules/terraform-aws-iam/commit/0f4c1c74b3bf40031d51d930600000cb976359e0))
+
+## [6.3.0](https://github.com/terraform-aws-modules/terraform-aws-iam/compare/v6.2.3...v6.3.0) (2026-01-08)
+
+### Features
+
+* Add provider meta user-agent ([#632](https://github.com/terraform-aws-modules/terraform-aws-iam/issues/632)) ([6af220e](https://github.com/terraform-aws-modules/terraform-aws-iam/commit/6af220e9f5d52c502d8f0866892ada877cb2b509))
+
 ## [6.2.3](https://github.com/terraform-aws-modules/terraform-aws-iam/compare/v6.2.2...v6.2.3) (2025-10-29)
 
 ### Bug Fixes

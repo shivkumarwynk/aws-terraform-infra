@@ -13,6 +13,13 @@ data "aws_service_principal" "elasticloadbalancing" {
   region       = var.region
 }
 
+data "aws_service_principal" "globalaccelerator" {
+  count = var.create && var.attach_load_balancer_controller_aga_policy ? 1 : 0
+
+  service_name = "globalaccelerator"
+  region       = var.region
+}
+
 data "aws_service_principal" "fsx" {
   count = var.create && (var.attach_fsx_lustre_csi_policy || var.attach_fsx_openzfs_csi_policy) ? 1 : 0
 
@@ -40,7 +47,7 @@ data "aws_service_principal" "delivery_logs" {
 data "aws_iam_policy_document" "aws_gateway_controller" {
   count = var.create && var.attach_aws_gateway_controller_policy ? 1 : 0
 
-  # https://github.com/aws/aws-application-networking-k8s/blob/v1.1.0/files/controller-installation/recommended-inline-policy.json
+  # https://github.com/aws/aws-application-networking-k8s/blob/v2.0.0/files/controller-installation/recommended-inline-policy.json
   statement {
     actions = [
       "vpc-lattice:*",
@@ -60,6 +67,8 @@ data "aws_iam_policy_document" "aws_gateway_controller" {
       "firehose:TagDeliveryStream",
       "s3:GetBucketPolicy",
       "s3:PutBucketPolicy",
+      "tag:TagResources",
+      "tag:UntagResources"
     ]
     resources = ["*"]
   }
@@ -169,6 +178,7 @@ data "aws_iam_policy_document" "ebs_csi" {
   statement {
     actions = [
       "ec2:DescribeAvailabilityZones",
+      "ec2:DescribeInstanceTypes",
       "ec2:DescribeInstances",
       "ec2:DescribeSnapshots",
       "ec2:DescribeTags",
@@ -970,6 +980,155 @@ data "aws_iam_policy_document" "load_balancer_controller_targetgroup_only" {
 }
 
 ################################################################################
+# AWS Load Balancer Controller Global Accelerator (AGA) Policy
+################################################################################
+
+# https://kubernetes-sigs.github.io/aws-load-balancer-controller/v3.4/install/aga_controller_iam_policy.json
+data "aws_iam_policy_document" "load_balancer_controller_aga" {
+  count = var.create && var.attach_load_balancer_controller_aga_policy ? 1 : 0
+
+  statement {
+    actions   = ["iam:CreateServiceLinkedRole"]
+    resources = ["*"]
+
+    condition {
+      test     = "StringEquals"
+      variable = "iam:AWSServiceName"
+      values   = [data.aws_service_principal.globalaccelerator[0].name]
+    }
+  }
+
+  statement {
+    actions = [
+      "globalaccelerator:ListAccelerators",
+      "globalaccelerator:ListEndpointGroups",
+      "globalaccelerator:ListListeners",
+      "globalaccelerator:ListTagsForResource",
+      "ec2:DescribeRegions",
+      "tag:GetResources",
+    ]
+    resources = ["*"]
+  }
+
+  statement {
+    actions = [
+      "globalaccelerator:DescribeAccelerator",
+      "globalaccelerator:DescribeEndpointGroup",
+      "globalaccelerator:DescribeListener",
+    ]
+    resources = [
+      "arn:${local.partition}:globalaccelerator::*:accelerator/*",
+      "arn:${local.partition}:globalaccelerator::*:accelerator/*/listener/*",
+      "arn:${local.partition}:globalaccelerator::*:accelerator/*/listener/*/endpoint-group/*",
+    ]
+
+    condition {
+      test     = "Null"
+      variable = "aws:ResourceTag/elbv2.k8s.aws/cluster"
+      values   = ["false"]
+    }
+
+    condition {
+      test     = "StringEquals"
+      variable = "aws:ResourceTag/aga.k8s.aws/resource"
+      values   = ["GlobalAccelerator"]
+    }
+  }
+
+  statement {
+    actions   = ["globalaccelerator:CreateAccelerator"]
+    resources = ["*"]
+
+    condition {
+      test     = "Null"
+      variable = "aws:RequestTag/elbv2.k8s.aws/cluster"
+      values   = ["false"]
+    }
+
+    condition {
+      test     = "StringEquals"
+      variable = "aws:RequestTag/aga.k8s.aws/resource"
+      values   = ["GlobalAccelerator"]
+    }
+  }
+
+  statement {
+    actions = [
+      "globalaccelerator:UpdateAccelerator",
+      "globalaccelerator:DeleteAccelerator",
+      "globalaccelerator:CreateListener",
+      "globalaccelerator:UpdateListener",
+      "globalaccelerator:DeleteListener",
+      "globalaccelerator:CreateEndpointGroup",
+      "globalaccelerator:UpdateEndpointGroup",
+      "globalaccelerator:DeleteEndpointGroup",
+      "globalaccelerator:AddEndpoints",
+      "globalaccelerator:RemoveEndpoints",
+    ]
+    resources = [
+      "arn:${local.partition}:globalaccelerator::*:accelerator/*",
+      "arn:${local.partition}:globalaccelerator::*:accelerator/*/listener/*",
+      "arn:${local.partition}:globalaccelerator::*:accelerator/*/listener/*/endpoint-group/*",
+    ]
+
+    condition {
+      test     = "Null"
+      variable = "aws:ResourceTag/elbv2.k8s.aws/cluster"
+      values   = ["false"]
+    }
+
+    condition {
+      test     = "StringEquals"
+      variable = "aws:ResourceTag/aga.k8s.aws/resource"
+      values   = ["GlobalAccelerator"]
+    }
+  }
+
+  statement {
+    actions = [
+      "globalaccelerator:TagResource",
+      "globalaccelerator:UntagResource",
+    ]
+    resources = ["arn:${local.partition}:globalaccelerator::*:accelerator/*"]
+
+    condition {
+      test     = "Null"
+      variable = "aws:RequestTag/elbv2.k8s.aws/cluster"
+      values   = ["true"]
+    }
+
+    condition {
+      test     = "Null"
+      variable = "aws:ResourceTag/elbv2.k8s.aws/cluster"
+      values   = ["false"]
+    }
+
+    condition {
+      test     = "StringEquals"
+      variable = "aws:ResourceTag/aga.k8s.aws/resource"
+      values   = ["GlobalAccelerator"]
+    }
+  }
+
+  statement {
+    actions   = ["globalaccelerator:TagResource"]
+    resources = ["arn:${local.partition}:globalaccelerator::*:accelerator/*"]
+
+    condition {
+      test     = "Null"
+      variable = "aws:RequestTag/elbv2.k8s.aws/cluster"
+      values   = ["false"]
+    }
+
+    condition {
+      test     = "StringEquals"
+      variable = "aws:RequestTag/aga.k8s.aws/resource"
+      values   = ["GlobalAccelerator"]
+    }
+  }
+}
+
+################################################################################
 # Amazon Managed Service for Prometheus Policy
 ################################################################################
 
@@ -1085,6 +1244,7 @@ data "aws_iam_policy_document" "vpc_cni" {
         "ec2:DescribeNetworkInterfaces",
         "ec2:DescribeInstanceTypes",
         "ec2:DescribeSubnets",
+        "ec2:DescribeSecurityGroups",
         "ec2:DetachNetworkInterface",
         "ec2:ModifyNetworkInterfaceAttribute",
         "ec2:UnassignPrivateIpAddresses"
@@ -1105,6 +1265,8 @@ data "aws_iam_policy_document" "vpc_cni" {
         "ec2:DescribeTags",
         "ec2:DescribeNetworkInterfaces",
         "ec2:DescribeInstanceTypes",
+        "ec2:DescribeSubnets",
+        "ec2:DescribeSecurityGroups",
       ]
       resources = ["*"]
     }

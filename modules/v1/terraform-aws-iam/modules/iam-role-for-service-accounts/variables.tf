@@ -68,6 +68,18 @@ variable "oidc_providers" {
   default     = {}
 }
 
+variable "source_trust_policy_documents" {
+  description = "List of IAM policy documents that are merged together into the trust policy. Statements must have unique `sid`s"
+  type        = list(string)
+  default     = []
+}
+
+variable "override_trust_policy_documents" {
+  description = "List of IAM policy documents that are merged together into the trust policy. In merging, statements with non-blank `sid`s will override statements with the same `sid`"
+  type        = list(string)
+  default     = []
+}
+
 variable "policies" {
   description = "Policies to attach to the IAM role in `{'static_name' = 'policy_arn'}` format"
   type        = map(string)
@@ -311,6 +323,25 @@ variable "load_balancer_controller_targetgroup_arns" {
   description = "List of Target groups ARNs using Load Balancer Controller"
   type        = list(string)
   default     = []
+}
+
+# https://kubernetes-sigs.github.io/aws-load-balancer-controller/v3.4/install/aga_controller_iam_policy.json
+variable "attach_load_balancer_controller_aga_policy" {
+  description = "Determines whether to attach the Load Balancer Controller policy for AWS Global Accelerator (AGA) support"
+  type        = bool
+  default     = false
+}
+
+variable "load_balancer_controller_aga_policy_name" {
+  description = "Name to use on the Load Balancer Controller AGA IAM policy created"
+  type        = string
+  default     = "AWS_LBC_Global_Accelerator"
+}
+
+variable "load_balancer_controller_aga_policy_description" {
+  description = "Description to use on the Load Balancer Controller AGA IAM policy created"
+  type        = string
+  default     = "Provides permissions for AWS Load Balancer Controller with AWS Global Accelerator (AGA) support"
 }
 
 # Amazon Managed Service for Prometheus

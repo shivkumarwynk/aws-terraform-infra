@@ -49,6 +49,9 @@ locals {
 data "aws_iam_policy_document" "assume" {
   count = var.create ? 1 : 0
 
+  source_policy_documents   = var.source_trust_policy_documents
+  override_policy_documents = var.override_trust_policy_documents
+
   dynamic "statement" {
     for_each = var.oidc_providers
 
@@ -193,6 +196,33 @@ resource "aws_iam_role_policy_attachment" "this" {
 
   role       = aws_iam_role.this[0].name
   policy_arn = aws_iam_policy.this[0].arn
+}
+
+################################################################################
+# AWS Load Balancer Controller Global Accelerator (AGA) Policy
+#
+# Kept as a standalone policy (instead of merging into the policy above)
+# because combining it with the Load Balancer Controller policy can exceed
+# the 6,144 character quota for a customer managed IAM policy.
+################################################################################
+
+resource "aws_iam_policy" "load_balancer_controller_aga" {
+  count = var.create && var.attach_load_balancer_controller_aga_policy ? 1 : 0
+
+  name        = var.use_name_prefix ? null : var.load_balancer_controller_aga_policy_name
+  name_prefix = var.use_name_prefix ? "${var.load_balancer_controller_aga_policy_name}-" : null
+  path        = coalesce(var.policy_path, var.path)
+  description = var.load_balancer_controller_aga_policy_description
+  policy      = data.aws_iam_policy_document.load_balancer_controller_aga[0].json
+
+  tags = var.tags
+}
+
+resource "aws_iam_role_policy_attachment" "load_balancer_controller_aga" {
+  count = var.create && var.attach_load_balancer_controller_aga_policy ? 1 : 0
+
+  role       = aws_iam_role.this[0].name
+  policy_arn = aws_iam_policy.load_balancer_controller_aga[0].arn
 }
 
 ################################################################################
