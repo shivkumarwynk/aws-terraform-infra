@@ -1,37 +1,37 @@
 variable "region" {
-  description = "AWS region"
+  description = "Optional AWS region override; defaults to enterprise/common/config.json"
   type        = string
-  default     = "ap-south-1"
+  default     = null
 }
 
 variable "name" {
-  description = "Name prefix for ALB resources"
+  description = "Optional ALB name override; defaults to enterprise/common/config.json"
   type        = string
-  default     = "enterprise"
+  default     = null
 }
 
 variable "env" {
-  description = "Environment name"
+  description = "Optional environment override; defaults to enterprise/common/config.json"
   type        = string
-  default     = "prod"
+  default     = null
 }
 
 variable "vpc_name" {
-  description = "Name tag of the VPC created by enterprise/vpc-prod"
+  description = "Optional VPC Name tag override; defaults to enterprise/common/config.json"
   type        = string
-  default     = "wynk-prod"
+  default     = null
 }
 
 variable "public_subnet_names" {
-  description = "Name tags of public/LB subnets created by enterprise/vpc-prod"
+  description = "Optional public subnet Name tag overrides; defaults to enterprise/common/config.json"
   type        = list(string)
-  default     = ["lb-prod-subnet-1a", "lb-prod-subnet-1b"]
+  default     = null
 }
 
 variable "private_subnet_names" {
-  description = "Name tags of private/app subnets created by enterprise/vpc-prod"
+  description = "Optional private subnet Name tag overrides; defaults to enterprise/common/config.json"
   type        = list(string)
-  default     = ["app-prod-subnet-1a", "app-prod-subnet-1b"]
+  default     = null
 }
 
 variable "create_external_alb" {

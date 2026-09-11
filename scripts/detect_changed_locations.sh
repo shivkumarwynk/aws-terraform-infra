@@ -102,6 +102,7 @@ fi
 
 modules_changed=0
 declare -A seen=()
+declare -A changed_stacks=()
 locations=()
 
 record_location() {
@@ -127,6 +128,7 @@ for file in "${changed_files[@]}"; do
   fi
   # Account folder / terraform-stack (e.g. enterprise/ec2)
   stack="$(printf '%s\n' "${file}" | cut -d/ -f1-2)"
+  changed_stacks["${stack}"]=1
   if [[ "${stack}" == "${account}" ]]; then
     continue
   fi
@@ -147,7 +149,9 @@ if [[ -f "${DEPENDENCIES_FILE}" ]]; then
       upstream="${line%%:*}"
       downstream="${line#*:}"
       upstream="$(echo "${upstream}" | xargs)"
-      [[ -n "${seen[${upstream}]+x}" ]] || continue
+      if [[ -z "${seen[${upstream}]+x}" && -z "${changed_stacks[${upstream}]+x}" ]]; then
+        continue
+      fi
 
       for dependent in ${downstream}; do
         if [[ -z "${seen[${dependent}]+x}" ]] && is_terraform_dir "${REPO_ROOT}/${dependent}"; then

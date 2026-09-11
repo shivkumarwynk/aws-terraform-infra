@@ -1,13 +1,21 @@
 provider "aws" {
-  region = var.region
+  region = local.region
 }
 
 locals {
-  name = "${var.name}-${var.env}"
-  tags = merge({
+  common = jsondecode(file("${path.module}/../common/config.json"))
+
+  region               = coalesce(var.region, local.common.region)
+  workload_name        = coalesce(var.name, local.common.alb.name)
+  environment          = coalesce(var.env, local.common.alb.environment)
+  vpc_name             = coalesce(var.vpc_name, local.common.network.vpc_name)
+  public_subnet_names  = var.public_subnet_names != null ? var.public_subnet_names : local.common.network.subnet_names.public
+  private_subnet_names = var.private_subnet_names != null ? var.private_subnet_names : local.common.network.subnet_names.private
+
+  name = "${local.workload_name}-${local.environment}"
+  tags = merge(local.common.tags, {
     Name        = local.name
-    Environment = var.env
-    Terraform   = "true"
+    Environment = local.environment
   }, var.tags)
 
   https_enabled          = var.enable_https && var.certificate_arn != ""
@@ -15,8 +23,8 @@ locals {
 
   vpc_id             = module.network.vpc_id
   vpc_cidr           = module.network.vpc_cidr_block
-  public_subnet_ids  = [for name in var.public_subnet_names : module.network.subnet_ids[name]]
-  private_subnet_ids = [for name in var.private_subnet_names : module.network.subnet_ids[name]]
+  public_subnet_ids  = [for name in local.public_subnet_names : module.network.subnet_ids[name]]
+  private_subnet_ids = [for name in local.private_subnet_names : module.network.subnet_ids[name]]
 
   additional_attachments = {
     for idx, id in var.target_ids : "target-${idx}" => {
@@ -86,9 +94,9 @@ locals {
 module "network" {
   source = "../../modules/v1/terraform-aws-network-lookup"
 
-  vpc_name = var.vpc_name
+  vpc_name = local.vpc_name
   subnet_names = {
-    for name in concat(var.public_subnet_names, var.private_subnet_names) : name => name
+    for name in concat(local.public_subnet_names, local.private_subnet_names) : name => name
   }
 }
 

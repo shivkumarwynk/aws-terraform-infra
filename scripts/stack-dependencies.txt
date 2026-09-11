@@ -3,3 +3,4 @@
 # When an upstream stack changes, location detection also runs each dependent.
 # This keeps consumers that discover AWS resources by tags/names in sync.
 enterprise/vpc-prod: enterprise/ec2 enterprise/alb
+enterprise/common: enterprise/vpc-prod enterprise/ec2 enterprise/alb enterprise/s3

@@ -1,0 +1,58 @@
+{
+  "account_name": "enterprise",
+  "region": "ap-south-1",
+  "tags": {
+    "Account": "enterprise",
+    "ManagedBy": "Terraform",
+    "Terraform": "true"
+  },
+  "network": {
+    "name": "wynk",
+    "environment": "prod",
+    "vpc_name": "wynk-prod",
+    "vpc_cidr": "10.14.0.0/16",
+    "availability_zone_count": 2,
+    "subnet_names": {
+      "public": [
+        "lb-prod-subnet-1a",
+        "lb-prod-subnet-1b"
+      ],
+      "private": [
+        "app-prod-subnet-1a",
+        "app-prod-subnet-1b"
+      ],
+      "database": [
+        "db-prod-subnet-1a",
+        "db-prod-subnet-1b"
+      ]
+    },
+    "ec2_subnet_names": {
+      "vpn": "lb-prod-subnet-1a",
+      "jenkins": "app-prod-subnet-1a",
+      "mongo": "app-prod-subnet-1b"
+    },
+    "security_group_names": {
+      "vpn": "wynk-prod-vpn",
+      "jenkins": "wynk-prod-app",
+      "mongo": "wynk-mongo-prod-db",
+      "app": "wynk-prod-app",
+      "alb": "wynk-alb-prod",
+      "rds": "wynk-prod-db"
+    }
+  },
+  "ec2": {
+    "name": "enterprise",
+    "environment": "staging",
+    "ami": "ami-019715e0d74f695be",
+    "key_name": "wynk-staging",
+    "iam_instance_profile": "wynk-staging"
+  },
+  "alb": {
+    "name": "enterprise",
+    "environment": "prod"
+  },
+  "registry": {
+    "repository_name": "wynknon-production",
+    "environment": "non-production"
+  }
+}

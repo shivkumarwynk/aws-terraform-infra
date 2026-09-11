@@ -5,17 +5,18 @@ provider "aws" {
 data "aws_availability_zones" "available" {}
 
 locals {
-  name   = "wynk"
-  region = "ap-south-1"
-  env    = "prod"
+  common = jsondecode(file("${path.module}/../common/config.json"))
 
-  vpc_cidr = "10.14.0.0/16"
-  azs      = slice(data.aws_availability_zones.available.names, 0, 2)
+  name     = local.common.network.name
+  region   = local.common.region
+  env      = local.common.network.environment
+  vpc_cidr = local.common.network.vpc_cidr
+  azs      = slice(data.aws_availability_zones.available.names, 0, local.common.network.availability_zone_count)
 
-  tags = {
-    name    = local.name
+  tags = merge(local.common.tags, {
+    Name        = "${local.name}-${local.env}"
     environment = local.env
-  }
+  })
 }
 
 ################################################################################
@@ -34,9 +35,9 @@ module "vpc" {
   database_subnets    = [for k, v in local.azs : cidrsubnet(local.vpc_cidr, 8, k + 34)]
   #intra_subnets       = [for k, v in local.azs : cidrsubnet(local.vpc_cidr, 8, k + 36)]
 
-  private_subnet_names     = ["app-${local.env}-subnet-1a", "app-${local.env}-subnet-1b"]
-  public_subnet_names      = ["lb-${local.env}-subnet-1a", "lb-${local.env}-subnet-1b"]
-  database_subnet_names    = ["db-${local.env}-subnet-1a","db-${local.env}-subnet-1b"]
+  private_subnet_names  = local.common.network.subnet_names.private
+  public_subnet_names   = local.common.network.subnet_names.public
+  database_subnet_names = local.common.network.subnet_names.database
   #intra_subnet_names       = ["int-${local.env}-subnet-1a", "int-non-${local.env}-subnet-1b"]
 
   create_database_subnet_group  = false

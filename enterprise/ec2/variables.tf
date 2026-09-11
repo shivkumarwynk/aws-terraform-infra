@@ -1,7 +1,7 @@
 variable "vpc_name" {
-  description = "Name tag of the VPC created by enterprise/vpc-prod"
+  description = "Optional VPC Name tag override; defaults to enterprise/common/config.json"
   type        = string
-  default     = "wynk-prod"
+  default     = null
 }
 
 variable "subnet_names" {
