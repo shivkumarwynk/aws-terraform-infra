@@ -54,19 +54,19 @@ variable "storage_size_gib" {
 variable "minimum_vcpu" {
   description = "Minimum vCPU count for ECS Managed Instance selection"
   type        = number
-  default     = 1
+  default     = 2
 }
 
 variable "maximum_vcpu" {
   description = "Maximum vCPU count for ECS Managed Instance selection"
   type        = number
-  default     = 4
+  default     = 8
 }
 
 variable "minimum_memory_mib" {
   description = "Minimum memory for ECS Managed Instance selection"
   type        = number
-  default     = 1024
+  default     = 2048
 }
 
 variable "maximum_memory_mib" {
