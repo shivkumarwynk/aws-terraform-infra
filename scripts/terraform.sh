@@ -5,7 +5,7 @@ set -euo pipefail
 # selected from the top-level account folder (enterprise, airtel, wynk, ...).
 #
 # Usage:
-#   terraform.sh <plan|apply|validate> [branch]
+#   terraform.sh <plan|apply|validate|destroy> [branch]
 #   terraform.sh [branch]                 # main/master -> apply, otherwise plan
 #
 # Locations:
@@ -27,7 +27,7 @@ GENERIC_AWS_REGION="${AWS_DEFAULT_REGION:-${AWS_REGION:-ap-south-1}}"
 COMMAND="${1:-}"
 BRANCH="${2:-${GITHUB_REF_NAME:-}}"
 
-if [[ "${COMMAND}" != "plan" && "${COMMAND}" != "apply" && "${COMMAND}" != "validate" ]]; then
+if [[ "${COMMAND}" != "plan" && "${COMMAND}" != "apply" && "${COMMAND}" != "validate" && "${COMMAND}" != "destroy" ]]; then
   BRANCH="${COMMAND}"
   if [[ "${BRANCH}" == "main" || "${BRANCH}" == "master" ]]; then
     COMMAND="apply"
@@ -129,6 +129,14 @@ run_in_directory() {
       echo "Running terraform apply (production branch: ${BRANCH:-main})."
       terraform apply -input=false -auto-approve -no-color
       echo "Terraform apply complete for ${directory}."
+      ;;
+    destroy)
+      terraform plan -destroy -input=false -out=terraform.tfplan -no-color
+      terraform show -json terraform.tfplan > terraform.json
+      "${REPO_ROOT}/scripts/terraform_validator.sh"
+      echo "Running terraform destroy for ${directory}."
+      terraform apply -input=false -auto-approve -no-color terraform.tfplan
+      echo "Terraform destroy complete for ${directory}."
       ;;
   esac
 
