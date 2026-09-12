@@ -175,6 +175,9 @@ resource "aws_ecs_capacity_provider" "managed" {
   managed_instances_provider {
     infrastructure_role_arn = module.managed_infrastructure_role.arn
     propagate_tags          = "CAPACITY_PROVIDER"
+    infrastructure_optimization {
+      scale_in_after = "180"
+    }
 
     instance_launch_template {
       ec2_instance_profile_arn = module.managed_instance_role.instance_profile_arn
@@ -187,9 +190,6 @@ resource "aws_ecs_capacity_provider" "managed" {
 
       storage_configuration {
         storage_size_gib = var.storage_size_gib
-      }
-      infrastructure_optimization {
-       scale_in_after = "180"
       }
       instance_requirements {
         memory_mib {
