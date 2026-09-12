@@ -23,13 +23,13 @@ variable "vpc_name" {
 }
 
 variable "public_subnet_names" {
-  description = "Optional public subnet Name tag overrides; defaults to enterprise/common/config.json"
+  description = "Optional public subnet Name tag overrides; defaults to the current environment VPC naming convention"
   type        = list(string)
   default     = null
 }
 
 variable "private_subnet_names" {
-  description = "Optional private subnet Name tag overrides; defaults to enterprise/common/config.json"
+  description = "Optional private subnet Name tag overrides; defaults to the current environment VPC naming convention"
   type        = list(string)
   default     = null
 }
@@ -80,6 +80,17 @@ variable "target_port" {
   description = "Application port on registered targets"
   type        = number
   default     = 8080
+}
+
+variable "default_target_group_type" {
+  description = "Target group type used by ALB listeners; both IP and instance target groups are created"
+  type        = string
+  default     = "ip"
+
+  validation {
+    condition     = contains(["ip", "instance"], var.default_target_group_type)
+    error_message = "default_target_group_type must be either \"ip\" or \"instance\"."
+  }
 }
 
 variable "health_check_path" {
