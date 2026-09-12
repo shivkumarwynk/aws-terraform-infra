@@ -25,6 +25,19 @@ locals {
   common_tags = merge(local.common.tags, { Environment = local.env })
 }
 
+data "aws_security_group" "vpn" {
+  name = local.security_group_names["vpn"]
+}
+
+data "aws_security_group" "app" {
+  name = local.security_group_names["app"]
+}
+
+data "aws_security_group" "db" {
+  name = local.security_group_names["db"]
+}
+
+
 module "ec2_instance_vpn" {
   source = "../../../modules/v1/terraform-aws-ec2-instance"
 
@@ -38,7 +51,7 @@ module "ec2_instance_vpn" {
   subnet_id     =  local.subnet_names["vpn"]
   ami           = local.ami
   iam_instance_profile   = local.instance_profile
-  vpc_security_group_ids = local.security_group_names["vpn"]
+  vpc_security_group_ids = data.aws_security_group.vpn.id
   tags = merge(local.common_tags, {
     tier = "vpn"
   })
@@ -59,7 +72,7 @@ module "ec2_instance_mongo" {
   subnet_id              = local.subnet_names["db"]
   ami                    = local.ami
   iam_instance_profile   = local.instance_profile
-  vpc_security_group_ids = local.security_group_names["db"]
+  vpc_security_group_ids = data.aws_security_group.app.id
   tags = merge(local.common_tags, {
     tier = "db"
   })
