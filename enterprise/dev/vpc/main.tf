@@ -349,19 +349,6 @@ resource "aws_security_group" "rds" {
     protocol    = "tcp"
     cidr_blocks = [module.vpc.vpc_cidr_block]
   }
-  tags = merge(
-    {
-      "Name" = "${local.name}-${local.env}-rds"
-    },
-    local.tags,
-  )
-}
-#############
-resource "aws_security_group" "db" {
-  name        = "${local.name}-${local.env}-db"
-  description = "Allow mongodb inbound traffic"
-  vpc_id      = module.vpc.vpc_id
-
   ingress {
     description = "mongo from VPC"
     from_port   = 27017
@@ -383,17 +370,9 @@ resource "aws_security_group" "db" {
     protocol    = "tcp"
     cidr_blocks = [module.vpc.vpc_cidr_block]
   }
-  # Allow all outbound traffic
-  egress {
-    description = "Allow all outbound traffic"
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
   tags = merge(
     {
-      "Name" = "${local.name}-mongo-${local.env}-db"
+      "Name" = "${local.name}-${local.env}-db"
     },
     local.tags,
   )
