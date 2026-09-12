@@ -16,7 +16,6 @@ locals {
 
   name = "${local.workload_name}-${local.environment}"
   tags = merge(local.common.tags, {
-    Name        = local.name
     Environment = local.environment
   }, var.tags)
 
@@ -91,15 +90,6 @@ locals {
       }
     }
   } : {}
-}
-
-module "network" {
-  source = "../../../modules/v1/terraform-aws-network-lookup"
-
-  vpc_name = local.vpc_name
-  subnet_names = {
-    for name in concat(local.public_subnet_names, local.private_subnet_names) : name => name
-  }
 }
 
 ################################################################################
