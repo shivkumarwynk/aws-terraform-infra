@@ -17,25 +17,99 @@ locals {
     Environment = local.env
   })
   network_acls = {
+    private_inbound = [
+      {
+      "cidr_block" : local.vpc_config.vpc_cidr
+      "from_port" : 80,
+      "protocol" : "tcp",
+      "rule_action" : "allow",
+      "rule_number" : 100,
+      "to_port" : 80
+    },
+    {
+      "cidr_block" : local.vpc_config.vpc_cidr
+      "from_port" : 443,
+      "protocol" : "tcp",
+      "rule_action" : "allow",
+      "rule_number" : 101,
+      "to_port" : 443
+    },
+    {
+      "cidr_block" : local.vpc_config.vpc_cidr
+      "from_port" : 1024,
+      "protocol" : "-1",
+      "rule_action" : "allow",
+      "rule_number" : 98,
+      "to_port" : 65535
+    }
+    ]
     default_inbound = [
       {
-        rule_number = 900
+      "cidr_block" : "0.0.0.0/0",
+      "from_port" : 80,
+      "protocol" : "tcp",
+      "rule_action" : "allow",
+      "rule_number" : 100,
+      "to_port" : 80
+    },
+    {
+      "cidr_block" : "0.0.0.0/0",
+      "from_port" : 443,
+      "protocol" : "tcp",
+      "rule_action" : "allow",
+      "rule_number" : 101,
+      "to_port" : 443
+    },
+    {
+      "cidr_block" : "0.0.0.0/0",
+      "from_port" : 1024,
+      "protocol" : "-1",
+      "rule_action" : "allow",
+      "rule_number" : 98,
+      "to_port" : 65535
+    }
+    ]
+     database_inbound = [
+      {
+        rule_number = 100
         rule_action = "allow"
-        from_port   = 1024
-        to_port     = 65535
+        from_port   = 3306
+        to_port     = 3306
         protocol    = "tcp"
+        cidr_block  = local.vpc_config.vpc_cidr
+      },
+      {
+        rule_number = 101
+        rule_action = "allow"
+        from_port   = 27017
+        to_port     = 27017
+        protocol    = "tcp"
+        cidr_block  = local.vpc_config.vpc_cidr
+      },
+      {
+        rule_number = 102
+        rule_action = "allow"
+        from_port   = 5432
+        to_port     = 5432
+        protocol    = "tcp"
+        cidr_block  = local.vpc_config.vpc_cidr
+      },
+      {
+        rule_number = 200
+        rule_action = "deny"
+        protocol    = "-1"
         cidr_block  = "0.0.0.0/0"
       },
     ]
     default_outbound = [
       {
-        rule_number = 900
-        rule_action = "allow"
-        from_port   = 32768
-        to_port     = 65535
-        protocol    = "tcp"
-        cidr_block  = "0.0.0.0/0"
-      },
+      "cidr_block" : "0.0.0.0/0",
+      "from_port" : 0,
+      "protocol" : "-1",
+      "rule_action" : "allow",
+      "rule_number" : 100,
+      "to_port" : 0
+    },
     ]
     }
 }
@@ -67,13 +141,13 @@ module "vpc" {
   private_subnet_tags     = { Tier = "private" }
   public_subnet_tags      = { Tier = "public" }
   database_subnet_tags    = { Tier = "database" }
-   ######route######
+   ######Default route######
   manage_default_route_table           = true
   default_route_table_name             = "${local.name}-${local.env}-default"
   default_route_table_tags             = { Name = "${local.name}-${local.env}-default" }
   default_route_table_routes           = []
   default_route_table_propagating_vgws = []
-  ######security######
+  ######Default security######
   manage_default_security_group  = true
   default_security_group_name    = "${local.name}-${local.env}-default"
   default_security_group_tags    = { Name = "${local.name}-${local.env}-default" }
@@ -82,46 +156,20 @@ module "vpc" {
   #########
   instance_tenancy               = "default"
   map_public_ip_on_launch        = false
-  private_inbound_acl_rules  = local.network_acls["default_inbound"]
+  private_inbound_acl_rules  = local.network_acls["private_inbound"]
   private_outbound_acl_rules = local.network_acls["default_outbound"]
   public_dedicated_network_acl = true
-  public_inbound_acl_rules = [
-    {
-      "cidr_block" : "0.0.0.0/0",
-      "from_port" : 80,
-      "protocol" : "tcp",
-      "rule_action" : "allow",
-      "rule_number" : 100,
-      "to_port" : 80
-    },
-    {
-      "cidr_block" : "0.0.0.0/0",
-      "from_port" : 443,
-      "protocol" : "tcp",
-      "rule_action" : "allow",
-      "rule_number" : 101,
-      "to_port" : 443
-    },
-    {
-      "cidr_block" : "0.0.0.0/0",
-      "from_port" : 1024,
-      "protocol" : "-1",
-      "rule_action" : "allow",
-      "rule_number" : 98,
-      "to_port" : 65535
-    }
+  public_inbound_acl_rules = local.network_acls["default_inbound"]
+  public_outbound_acl_rules = local.network_acls["default_outbound"]
 
-  ]
-  public_outbound_acl_rules = [
-    {
-      "cidr_block" : "0.0.0.0/0",
-      "from_port" : 0,
-      "protocol" : "-1",
-      "rule_action" : "allow",
-      "rule_number" : 100,
-      "to_port" : 0
-    }
-  ]
+
+  ######Default NACL security######
+  manage_default_network_acl = true
+  default_network_acl_name   = "${local.name}-${local.env}-default"
+  default_network_acl_tags   = { Name = "${local.name}-${local.env}-default" }
+  default_network_acl_ingress = local.network_acls["database_inbound"]
+  default_network_acl_egress = local.network_acls["default_outbound"]
+  ######Default NACL security######
   enable_dns_hostnames = true
   enable_dns_support   = true
 
