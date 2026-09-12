@@ -160,7 +160,7 @@ module "alb_external" {
 
   create = var.create_external_alb
 
-  name                       = "${local.name}-ext"
+  name                       = "${local.name}-external"
   load_balancer_type         = "application"
   vpc_id                     = local.vpc_id
   subnets                    = local.public_subnet_ids
