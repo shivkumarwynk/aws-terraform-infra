@@ -1,4 +1,4 @@
 # upstream-stack: dependent-stack(s)
 #
 # Shared values rerun the current deployable component roots.
-enterprise/common: enterprise/dev/vpc enterprise/dev/ec2 enterprise/dev/alb enterprise/dev/ecs enterprise/dev/dlm enterprise/staging/vpc enterprise/staging/ec2 enterprise/staging/s3 enterprise/prod/vpc enterprise/prod/alb
+enterprise/common: enterprise/dev/vpc enterprise/dev/ec2 enterprise/dev/alb enterprise/dev/ecs enterprise/dev/dlm enterprise/dev/ecr enterprise/staging/vpc enterprise/staging/ec2 enterprise/staging/s3 enterprise/prod/vpc enterprise/prod/alb
