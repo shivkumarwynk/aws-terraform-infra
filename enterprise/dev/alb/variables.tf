@@ -37,7 +37,7 @@ variable "private_subnet_names" {
 variable "create_external_alb" {
   description = "Create the internet-facing (external) ALB"
   type        = bool
-  default     = false
+  default     = true
 }
 
 variable "create_internal_alb" {
