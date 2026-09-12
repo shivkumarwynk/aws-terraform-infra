@@ -13,12 +13,12 @@ output "capacity_provider_name" {
   value       = aws_ecs_capacity_provider.managed.name
 }
 
-output "ip_service_name" {
-  description = "Name of the awsvpc service registered in the IP target group"
-  value       = aws_ecs_service.ip.name
-}
+#output "ip_service_name" {
+##  description = "Name of the awsvpc service registered in the IP target group"
+#  value       = aws_ecs_service.ip.name
+#}
 
-output "instance_service_name" {
-  description = "Name of the bridge service registered in the instance target group"
-  value       = aws_ecs_service.instance.name
-}
+#output "instance_service_name" {
+#  description = "Name of the bridge service registered in the instance target group"
+#  value       = aws_ecs_service.instance.name
+#}
