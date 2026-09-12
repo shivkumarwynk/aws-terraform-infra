@@ -188,7 +188,9 @@ resource "aws_ecs_capacity_provider" "managed" {
       storage_configuration {
         storage_size_gib = var.storage_size_gib
       }
-
+      infrastructure_optimization {
+       scale_in_after = "180"
+      }
       instance_requirements {
         memory_mib {
           min = var.minimum_memory_mib
