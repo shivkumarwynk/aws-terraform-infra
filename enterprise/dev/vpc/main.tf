@@ -14,8 +14,7 @@ locals {
   azs        = slice(data.aws_availability_zones.available.names, 0, local.vpc_config.availability_zone_count)
 
   tags = merge(local.common.tags, {
-    Name        = "${local.name}-${local.env}"
-    environment = local.env
+    Environment = local.env
   })
   network_acls = {
     default_inbound = [
@@ -57,14 +56,32 @@ module "vpc" {
   database_subnets = [for k, v in local.azs : cidrsubnet(local.vpc_cidr, 8, k + 34)]
   #intra_subnets       = [for k, v in local.azs : cidrsubnet(local.vpc_cidr, 8, k + 36)]
 
-  private_subnet_names  = [for az in local.azs : "app-${local.env}-subnet-${substr(az, length(az) - 2, 2)}"]
-  public_subnet_names   = [for az in local.azs : "lb-${local.env}-subnet-${substr(az, length(az) - 2, 2)}"]
-  database_subnet_names = [for az in local.azs : "db-${local.env}-subnet-${substr(az, length(az) - 2, 2)}"]
+  private_subnet_names  = [for az in local.azs : "app-${local.name}-${local.env}-snet-${substr(az, length(az) - 2, 2)}"]
+  public_subnet_names   = [for az in local.azs : "lb-${local.name}-${local.env}-snet-${substr(az, length(az) - 2, 2)}"]
+  database_subnet_names = [for az in local.azs : "db-${local.name}-${local.env}-snet-${substr(az, length(az) - 2, 2)}"]
   #intra_subnet_names       = ["int-${local.env}-subnet-1a", "int-non-${local.env}-subnet-1b"]
 
   create_database_subnet_group = false
   manage_default_network_acl   = false
   private_dedicated_network_acl = true
+  private_subnet_tags     = { Tier = "private" }
+  public_subnet_tags      = { Tier = "public" }
+  database_subnet_tags    = { Tier = "database" }
+   ######route######
+  manage_default_route_table           = true
+  default_route_table_name             = "${local.name}-${local.env}-default"
+  default_route_table_tags             = { Name = "${local.name}-${local.env}-default" }
+  default_route_table_routes           = []
+  default_route_table_propagating_vgws = []
+  ######security######
+  manage_default_security_group  = true
+  default_security_group_name    = "${local.name}-${local.env}-default"
+  default_security_group_tags    = { Name = "${local.name}-${local.env}-default" }
+  default_security_group_ingress = []
+  default_security_group_egress  = []
+  #########
+  instance_tenancy               = "default"
+  map_public_ip_on_launch        = false
   private_inbound_acl_rules  = local.network_acls["default_inbound"]
   private_outbound_acl_rules = local.network_acls["default_outbound"]
   public_dedicated_network_acl = true
@@ -105,9 +122,6 @@ module "vpc" {
       "to_port" : 0
     }
   ]
-  manage_default_route_table    = false
-  manage_default_security_group = false
-
   enable_dns_hostnames = true
   enable_dns_support   = true
 
