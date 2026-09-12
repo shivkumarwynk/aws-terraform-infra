@@ -1,4 +1,9 @@
 locals {
+  common = jsondecode(file("${path.module}/../../common/config.json"))
+  env         = basename(dirname(abspath(path.module)))
+  region      = local.common.region
+  name        = local.common.environments[local.env].vpc.name
+  common_tags = merge(local.common.tags, { Environment = local.env })
   bucket_names = [
     "backup",
     "application"
