@@ -51,6 +51,7 @@ resource "aws_dlm_lifecycle_policy" "ebs" {
   description        = "${local.name}-${local.env} EBS snapshot policy"
   execution_role_arn = module.dlm_role.arn
   state              = "ENABLED"
+  name            = "${local.name}-${local.env}-dlm"
 
   policy_details {
     resource_types = ["VOLUME"]
