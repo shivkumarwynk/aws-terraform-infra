@@ -242,7 +242,7 @@ module "alb_internal" {
 
   create = var.create_internal_alb
 
-  name                       = "${local.name}-int"
+  name                       = "${local.name}-internal"
   load_balancer_type         = "application"
   vpc_id                     = local.vpc_id
   subnets                    = local.private_subnet_ids
