@@ -51,7 +51,7 @@ module "ec2_instance_vpn" {
   subnet_id     =  local.subnet_names["vpn"]
   ami           = local.ami
   iam_instance_profile   = local.instance_profile
-  vpc_security_group_ids = data.aws_security_group.vpn.id
+  vpc_security_group_ids = [data.aws_security_group.vpn.id]
   tags = merge(local.common_tags, {
     tier = "vpn"
   })
@@ -72,7 +72,7 @@ module "ec2_instance_mongo" {
   subnet_id              = local.subnet_names["db"]
   ami                    = local.ami
   iam_instance_profile   = local.instance_profile
-  vpc_security_group_ids = data.aws_security_group.app.id
+  vpc_security_group_ids = [data.aws_security_group.app.id]
   tags = merge(local.common_tags, {
     tier = "db"
   })
