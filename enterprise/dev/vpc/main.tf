@@ -166,8 +166,26 @@ module "vpc" {
   manage_default_network_acl = true
   default_network_acl_name   = "${local.name}-${local.env}-default"
   default_network_acl_tags   = { Name = "${local.name}-${local.env}-default" }
-  default_network_acl_ingress = local.network_acls["database_inbound"]
-  default_network_acl_egress = local.network_acls["default_outbound"]
+  default_network_acl_ingress = [
+    {
+      rule_no    = 100
+      action     = "allow"
+      from_port  = 0
+      to_port    = 0
+      protocol   = "-1"
+      cidr_block = local.vpc_config.vpc_cidr
+    },
+  ]
+  default_network_acl_egress = [
+    {
+      rule_no    = 100
+      action     = "allow"
+      from_port  = 0
+      to_port    = 0
+      protocol   = "-1"
+      cidr_block = "0.0.0.0/0"
+    },
+  ]
   ######Default NACL security######
   enable_dns_hostnames = true
   enable_dns_support   = true
