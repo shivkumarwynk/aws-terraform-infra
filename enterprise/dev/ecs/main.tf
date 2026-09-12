@@ -211,17 +211,109 @@ resource "aws_ecs_capacity_provider" "managed" {
   tags = local.tags
 }
 
-resource "aws_ecs_cluster_capacity_providers" "cluster_capacity_providers" {
-  cluster_name       = aws_ecs_cluster.ecs.name
-  capacity_providers = [aws_ecs_capacity_provider.managed.name]
+# -------------------------
+# Spot Capacity Provider
+# -------------------------
+resource "aws_ecs_capacity_provider" "spot" {
+  name    = "${local.name}-managed-spot"
+  cluster = aws_ecs_cluster.ecs.name
 
+  managed_instances_provider {
+    infrastructure_role_arn = module.managed_infrastructure_role.arn
+    propagate_tags          = "CAPACITY_PROVIDER"
+
+    infrastructure_optimization {
+      scale_in_after = "180"
+    }
+
+    instance_launch_template {
+      ec2_instance_profile_arn = module.managed_instance_role.instance_profile_arn
+      monitoring               = "BASIC"
+
+      # Use Spot instances
+      capacity_option_type = "SPOT"
+
+      network_configuration {
+        subnets         = local.private_subnet_ids
+        security_groups = [data.aws_security_group.app.id]
+      }
+
+      storage_configuration {
+        storage_size_gib = var.storage_size_gib
+      }
+
+      instance_requirements {
+        memory_mib {
+          min = var.minimum_memory_mib
+          max = var.maximum_memory_mib
+        }
+
+        vcpu_count {
+          min = var.minimum_vcpu
+          max = var.maximum_vcpu
+        }
+
+        instance_generations = ["current"]
+        cpu_manufacturers    = ["amd"]
+      }
+    }
+  }
+
+  tags = merge(local.tags, {
+    Name = "${local.name}-managed-spot"
+    Type = "spot"
+  })
+}
+
+# -------------------------
+# Wait for On-Demand
+# -------------------------
+resource "time_sleep" "wait_for_managed" {
+  depends_on = [
+    aws_ecs_capacity_provider.managed
+  ]
+
+  create_duration = "120s"
+}
+
+
+# -------------------------
+# Wait for Spot
+# -------------------------
+resource "time_sleep" "wait_for_spot" {
+  depends_on = [
+    aws_ecs_capacity_provider.spot
+  ]
+
+  create_duration = "120s"
+}
+
+# -------------------------
+# Associate both providers
+# -------------------------
+resource "aws_ecs_cluster_capacity_providers" "cluster_capacity_providers" {
+  cluster_name = aws_ecs_cluster.ecs.name
+
+  capacity_providers = [
+    aws_ecs_capacity_provider.managed.name,
+    aws_ecs_capacity_provider.spot.name
+  ]
+
+  # Keep at least 1 On-Demand instance
   default_capacity_provider_strategy {
     base              = 1
     capacity_provider = aws_ecs_capacity_provider.managed.name
     weight            = 1
   }
 
+  # Remaining capacity goes to Spot
+  default_capacity_provider_strategy {
+    capacity_provider = aws_ecs_capacity_provider.spot.name
+    weight            = 3
+  }
+
   depends_on = [
-    aws_ecs_capacity_provider.managed
+    time_sleep.wait_for_managed,
+    time_sleep.wait_for_spot
   ]
 }
