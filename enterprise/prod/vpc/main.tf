@@ -4,13 +4,14 @@ provider "aws" {
 data "aws_availability_zones" "available" {}
 
 locals {
-  common = jsondecode(file("${path.module}/../common/config.json"))
+  common = jsondecode(file("${path.module}/../../common/config.json"))
 
-  name     = local.common.network.name
-  region   = local.common.region
-  env      = local.common.network.environment
-  vpc_cidr = local.common.network.vpc_cidr
-  azs      = slice(data.aws_availability_zones.available.names, 0, local.common.network.availability_zone_count)
+  env        = basename(dirname(abspath(path.module)))
+  vpc_config = local.common.environments[local.env].vpc
+  name       = local.vpc_config.name
+  region     = local.common.region
+  vpc_cidr   = local.vpc_config.vpc_cidr
+  azs        = slice(data.aws_availability_zones.available.names, 0, local.vpc_config.availability_zone_count)
 
   tags = merge(local.common.tags, {
     Name        = "${local.name}-${local.env}"
@@ -23,7 +24,7 @@ locals {
 ################################################################################
 
 module "vpc" {
-  source = "../../modules/v1/aws-vpc"
+  source = "../../../modules/v1/aws-vpc"
 
   name = "${local.name}-${local.env}"
   cidr = local.vpc_cidr
@@ -34,9 +35,9 @@ module "vpc" {
   database_subnets = [for k, v in local.azs : cidrsubnet(local.vpc_cidr, 8, k + 34)]
   #intra_subnets       = [for k, v in local.azs : cidrsubnet(local.vpc_cidr, 8, k + 36)]
 
-  private_subnet_names  = local.common.network.subnet_names.private
-  public_subnet_names   = local.common.network.subnet_names.public
-  database_subnet_names = local.common.network.subnet_names.database
+  private_subnet_names  = [for az in local.azs : "app-${local.env}-subnet-${substr(az, length(az) - 2, 2)}"]
+  public_subnet_names   = [for az in local.azs : "lb-${local.env}-subnet-${substr(az, length(az) - 2, 2)}"]
+  database_subnet_names = [for az in local.azs : "db-${local.env}-subnet-${substr(az, length(az) - 2, 2)}"]
   #intra_subnet_names       = ["int-${local.env}-subnet-1a", "int-non-${local.env}-subnet-1b"]
 
   create_database_subnet_group = false
@@ -102,7 +103,7 @@ module "vpc" {
 ################################################################################
 
 module "vpc_endpoints" {
-  source = "../../modules/v1/aws-vpc/modules/vpc-endpoints"
+  source = "../../../modules/v1/aws-vpc/modules/vpc-endpoints"
 
   vpc_id = module.vpc.vpc_id
 
@@ -181,7 +182,7 @@ module "vpc_endpoints" {
 }
 
 module "vpc_endpoints_nocreate" {
-  source = "../../modules/v1/aws-vpc/modules/vpc-endpoints"
+  source = "../../../modules/v1/aws-vpc/modules/vpc-endpoints"
 
   create = false
 }
