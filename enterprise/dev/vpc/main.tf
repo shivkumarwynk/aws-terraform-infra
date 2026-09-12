@@ -14,8 +14,7 @@ locals {
   azs        = slice(data.aws_availability_zones.available.names, 0, local.vpc_config.availability_zone_count)
 
   tags = merge(local.common.tags, {
-    Name        = "${local.name}-${local.env}"
-    environment = local.env
+    Environment = local.env
   })
   network_acls = {
     default_inbound = [
@@ -57,9 +56,9 @@ module "vpc" {
   database_subnets = [for k, v in local.azs : cidrsubnet(local.vpc_cidr, 8, k + 34)]
   #intra_subnets       = [for k, v in local.azs : cidrsubnet(local.vpc_cidr, 8, k + 36)]
 
-  private_subnet_names  = [for az in local.azs : "app-${local.env}-subnet-${substr(az, length(az) - 2, 2)}"]
-  public_subnet_names   = [for az in local.azs : "lb-${local.env}-subnet-${substr(az, length(az) - 2, 2)}"]
-  database_subnet_names = [for az in local.azs : "db-${local.env}-subnet-${substr(az, length(az) - 2, 2)}"]
+  private_subnet_names  = [for az in local.azs : "app-${local.name}-${local.env}-snet-${substr(az, length(az) - 2, 2)}"]
+  public_subnet_names   = [for az in local.azs : "lb-${local.name}-${local.env}-snet-${substr(az, length(az) - 2, 2)}"]
+  database_subnet_names = [for az in local.azs : "db-${local.name}-${local.env}-snet-${substr(az, length(az) - 2, 2)}"]
   #intra_subnet_names       = ["int-${local.env}-subnet-1a", "int-non-${local.env}-subnet-1b"]
 
   create_database_subnet_group = false
