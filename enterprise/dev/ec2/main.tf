@@ -11,7 +11,10 @@ locals {
   vpc_config       = local.common.environments[local.env].vpc
   ami              = "ami-019715e0d74f695be"
   key_name         = "WordpressBlogSecurityKey"
-  instance_profile = "wynk-staging"
+  iam_role_name = "${local.name}-${local.env}-ec2"
+  root_block_device = {
+    encrypted = true
+  }
   subnet_names = merge({
     vpn = "lb-${local.name}-${local.env}-snet-1a"
     app = "app-${local.name}-${local.env}-snet-1a"
@@ -59,6 +62,29 @@ data "aws_subnet" "db" {
   }
 }
 
+module "ec2_instance_profile" {
+  source = "../../../modules/v1/terraform-aws-iam/modules/iam-role"
+
+  name                    = local.iam_role_name
+  create_instance_profile = true
+
+  trust_policy_permissions = {
+    EC2AssumeRole = {
+      actions = ["sts:AssumeRole"]
+      principals = [{
+        type        = "Service"
+        identifiers = ["ec2.amazonaws.com"]
+      }]
+    }
+  }
+
+  policies = {
+    AmazonS3ReadOnlyAccess       = "arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess"
+    AmazonSSMManagedInstanceCore = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+  }
+
+  tags = local.common_tags
+}
 
 module "ec2_instance_vpn" {
   source = "../../../modules/v1/terraform-aws-ec2-instance"
@@ -72,7 +98,8 @@ module "ec2_instance_vpn" {
   monitoring    = false
   subnet_id     =  data.aws_subnet.vpn.id
   ami           = local.ami
-  iam_instance_profile   = local.instance_profile
+  iam_instance_profile   = module.ec2_instance_profile.instance_profile_name
+  root_block_device      = local.root_block_device
   vpc_security_group_ids = [data.aws_security_group.vpn.id]
   tags = merge(local.common_tags, {
     tier = "vpn"
@@ -93,7 +120,8 @@ module "ec2_instance_mongo" {
   monitoring             = false
   subnet_id              = data.aws_subnet.db.id
   ami                    = local.ami
-  iam_instance_profile   = local.instance_profile
+  iam_instance_profile   = module.ec2_instance_profile.instance_profile_name
+  root_block_device      = local.root_block_device
   vpc_security_group_ids = [data.aws_security_group.app.id]
   tags = merge(local.common_tags, {
     tier = "db"
