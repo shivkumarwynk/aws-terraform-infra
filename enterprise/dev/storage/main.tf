@@ -20,10 +20,6 @@ module "storage_buckets" {
 
   control_object_ownership = true
   object_ownership         = "BucketOwnerEnforced"
-
-  attach_policy = each.key == "audit"
-  policy        = each.key == "audit" ? data.aws_iam_policy_document.cloudtrail_bucket.json : null
-
   block_public_acls       = true
   block_public_policy     = true
   ignore_public_acls      = true
@@ -39,7 +35,7 @@ module "storage_buckets" {
     }
   }
 
-  tags = merge(local.tags, {
+  tags = merge(local.common_tags, {
     Name = "${local.name}-${local.env}-${each.key}"
   })
 }
