@@ -38,15 +38,15 @@ data "aws_subnet_names" "db" {
   name = local.security_group_names["db"]
 }
 
-data "aws_subnet_id" "vpn" {
+data "aws_subnet" "vpn" {
   name = local.subnet_names["vpn"]
 }
 
-data "aws_subnet_id" "app" {
+data "aws_subnet" "app" {
   name = local.subnet_names["app"]
 }
 
-data "aws_subnet_id" "db" {
+data "aws_subnet" "db" {
   name = local.subnet_names["db"]
 }
 
@@ -60,7 +60,7 @@ module "ec2_instance_vpn" {
   instance_type = "t3a.medium"
   key_name      = local.key_name
   monitoring    = false
-  subnet_id     =  data.aws_subnet_id.vpn.id
+  subnet_id     =  data.aws_subnet.vpn.id
   ami           = local.ami
   iam_instance_profile   = local.instance_profile
   vpc_security_group_ids = [data.aws_security_group.vpn.id]
@@ -81,7 +81,7 @@ module "ec2_instance_mongo" {
   instance_type          = "t3a.small"
   key_name               = local.key_name
   monitoring             = false
-  subnet_id              = data.aws_subnet_id.db.id
+  subnet_id              = data.aws_subnet.db.id
   ami                    = local.ami
   iam_instance_profile   = local.instance_profile
   vpc_security_group_ids = [data.aws_security_group.app.id]
