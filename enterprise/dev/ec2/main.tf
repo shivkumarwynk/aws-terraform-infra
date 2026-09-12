@@ -17,6 +17,7 @@ locals {
     app = "app-${local.name}-${local.env}-snet-1a"
     db   = "app-${local.name}-${local.env}-snet-1b"
   }, var.subnet_names)
+  
   security_group_names = merge({
     vpn = "${local.vpc_config.name}-${local.env}-vpn"
     app = "${local.vpc_config.name}-${local.env}-app"
@@ -37,6 +38,27 @@ data "aws_security_group" "db" {
   name = local.security_group_names["db"]
 }
 
+data "aws_subnet" "vpn" {
+  filter {
+    name   = "tag:Name"
+    values = [local.subnet_names["vpn"]]
+  }
+}
+
+data "aws_subnet" "app" {
+  filter {
+    name   = "tag:Name"
+    values = [local.subnet_names["app"]]
+  }
+}
+
+data "aws_subnet" "db" {
+  filter {
+    name   = "tag:Name"
+    values = [local.subnet_names["db"]]
+  }
+}
+
 
 module "ec2_instance_vpn" {
   source = "../../../modules/v1/terraform-aws-ec2-instance"
@@ -48,7 +70,7 @@ module "ec2_instance_vpn" {
   instance_type = "t3a.medium"
   key_name      = local.key_name
   monitoring    = false
-  subnet_id     =  local.subnet_names["vpn"]
+  subnet_id     =  data.aws_subnet.vpn.id
   ami           = local.ami
   iam_instance_profile   = local.instance_profile
   vpc_security_group_ids = [data.aws_security_group.vpn.id]
@@ -69,7 +91,7 @@ module "ec2_instance_mongo" {
   instance_type          = "t3a.small"
   key_name               = local.key_name
   monitoring             = false
-  subnet_id              = local.subnet_names["db"]
+  subnet_id              = data.aws_subnet.db.id
   ami                    = local.ami
   iam_instance_profile   = local.instance_profile
   vpc_security_group_ids = [data.aws_security_group.app.id]
