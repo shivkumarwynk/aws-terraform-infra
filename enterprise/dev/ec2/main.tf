@@ -34,7 +34,7 @@ data "aws_security_group" "app" {
   name = local.security_group_names["app"]
 }
 
-data "aws_subnet_names" "db" {
+data "aws_security_group" "db" {
   name = local.security_group_names["db"]
 }
 
