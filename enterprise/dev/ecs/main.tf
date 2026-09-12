@@ -154,18 +154,15 @@ module "instance_service_role" {
   tags = local.tags
 }
 
-#resource "aws_cloudwatch_log_group" "ecs" {
-#  name              = "/aws/ecs/${local.name}"
-##  retention_in_days = 30
- # tags              = local.tags
-#}
 
-resource "aws_ecs_cluster" "this" {
+
+resource "aws_ecs_cluster" "ecs" {
   name = local.name
 
   setting {
     name  = "containerInsights"
-    value = "enhanced"
+    #value = "enhanced"
+    value = "enabled"
   }
 
   tags = local.tags
@@ -173,7 +170,7 @@ resource "aws_ecs_cluster" "this" {
 
 resource "aws_ecs_capacity_provider" "managed" {
   name    = "${local.name}-managed"
-  cluster = aws_ecs_cluster.this.name
+  cluster = aws_ecs_cluster.ecs.name
 
   managed_instances_provider {
     infrastructure_role_arn = module.managed_infrastructure_role.arn
@@ -181,7 +178,7 @@ resource "aws_ecs_capacity_provider" "managed" {
 
     instance_launch_template {
       ec2_instance_profile_arn = module.managed_instance_role.instance_profile_arn
-      monitoring               = "DETAILED"
+      monitoring               = "BASIC" #DETAILED
 
       network_configuration {
         subnets         = local.private_subnet_ids
@@ -204,7 +201,7 @@ resource "aws_ecs_capacity_provider" "managed" {
         }
 
         instance_generations = ["current"]
-        cpu_manufacturers    = ["intel", "amd"]
+        cpu_manufacturers    = ["amd"] #intel
       }
     }
   }
@@ -212,8 +209,8 @@ resource "aws_ecs_capacity_provider" "managed" {
   tags = local.tags
 }
 
-resource "aws_ecs_cluster_capacity_providers" "this" {
-  cluster_name       = aws_ecs_cluster.this.name
+resource "aws_ecs_cluster_capacity_providers" "cluster_capacity_providers" {
+  cluster_name       = aws_ecs_cluster.ecs.name
   capacity_providers = [aws_ecs_capacity_provider.managed.name]
 
   default_capacity_provider_strategy {
