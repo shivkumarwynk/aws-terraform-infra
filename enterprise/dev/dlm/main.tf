@@ -80,6 +80,7 @@ resource "aws_dlm_lifecycle_policy" "ebs" {
       copy_tags = true
     }
   }
-
-  tags = local.common_tags
+  tags = merge(local.common_tags, {
+    Name = "${local.name}-${local.env}-ebs-dlm"
+  })
 }
