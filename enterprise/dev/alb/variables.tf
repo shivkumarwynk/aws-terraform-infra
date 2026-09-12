@@ -79,7 +79,7 @@ variable "ssl_policy" {
 variable "target_port" {
   description = "Application port on registered targets"
   type        = number
-  default     = 8080
+  default     = 80
 }
 
 variable "default_target_group_type" {
