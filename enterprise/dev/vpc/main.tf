@@ -188,7 +188,7 @@ module "vpc" {
       action     = "allow"
       from_port  = 1024
       to_port    = 65535
-      protocol   = "-1"
+      protocol   = "tcp"
       cidr_block = "0.0.0.0/0"
     }
   ]
