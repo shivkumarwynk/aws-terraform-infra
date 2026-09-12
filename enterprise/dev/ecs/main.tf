@@ -49,14 +49,6 @@ data "aws_security_group" "app" {
   }
 }
 
-data "aws_lb_target_group" "ip" {
-  name = "${local.target_group_prefix}-ip"
-}
-
-data "aws_lb_target_group" "instance" {
-  name = "${local.target_group_prefix}-ec2"
-}
-
 module "managed_instance_role" {
   source = "../../../modules/v1/terraform-aws-iam/modules/iam-role"
 
