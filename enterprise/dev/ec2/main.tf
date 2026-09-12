@@ -45,17 +45,17 @@ data "aws_subnet" "vpn" {
   }
 }
 
-data "aws_subnet" "jenkins" {
+data "aws_subnet" "app" {
   filter {
     name   = "tag:Name"
-    values = [local.subnet_names["jenkins"]]
+    values = [local.subnet_names["app"]]
   }
 }
 
-data "aws_subnet" "mongo" {
+data "aws_subnet" "db" {
   filter {
     name   = "tag:Name"
-    values = [local.subnet_names["mongo"]]
+    values = [local.subnet_names["db"]]
   }
 }
 
