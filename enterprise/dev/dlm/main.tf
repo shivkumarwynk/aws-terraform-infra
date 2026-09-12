@@ -1,60 +1,62 @@
-resource "aws_iam_role" "dlm" {
-  name = "${local.name}-${local.env}-dlm-role"
+provider "aws" {
+  region = local.region
+}
 
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17"
+locals {
+  common = jsondecode(file("${path.module}/../../common/config.json"))
 
-    Statement = [
-      {
-        Effect = "Allow"
+  env         = basename(dirname(abspath(path.module)))
+  name        = local.common.environments[local.env].vpc.name
+  region      = local.common.region
+  common_tags = merge(local.common.tags, { Environment = local.env })
+}
 
-        Principal = {
-          Service = "dlm.amazonaws.com"
-        }
+module "dlm_role" {
+  source = "../../../modules/v1/terraform-aws-iam/modules/iam-role"
 
-        Action = "sts:AssumeRole"
-      }
-    ]
-  })
+  name            = "${local.name}-${local.env}-dlm"
+  use_name_prefix = false
+
+  trust_policy_permissions = {
+    DLMAssumeRole = {
+      actions = ["sts:AssumeRole"]
+      principals = [{
+        type        = "Service"
+        identifiers = ["dlm.amazonaws.com"]
+      }]
+    }
+  }
+
+  create_inline_policy = true
+  inline_policy_permissions = {
+    ManageSnapshots = {
+      actions = [
+        "ec2:CreateSnapshot",
+        "ec2:CreateSnapshots",
+        "ec2:CreateTags",
+        "ec2:DeleteSnapshot",
+        "ec2:DescribeInstances",
+        "ec2:DescribeSnapshots",
+        "ec2:DescribeTags",
+        "ec2:DescribeVolumes",
+      ]
+      resources = ["*"]
+    }
+  }
 
   tags = local.common_tags
 }
 
-resource "aws_iam_role_policy" "dlm" {
-  name = "${local.name}-${local.env}-dlm-policy"
-  role = aws_iam_role.dlm.id
-
-  policy = jsonencode({
-    Version = "2012-10-17"
-
-    Statement = [
-      {
-        Effect = "Allow"
-
-        Action = [
-          "ec2:CreateSnapshot",
-          "ec2:CreateSnapshots",
-          "ec2:DeleteSnapshot",
-          "ec2:DescribeVolumes",
-          "ec2:DescribeSnapshots",
-          "ec2:DescribeTags"
-        ]
-
-        Resource = "*"
-      }
-    ]
-  })
-}
 resource "aws_dlm_lifecycle_policy" "ebs" {
   description        = "${local.name}-${local.env} EBS snapshot policy"
-  execution_role_arn = aws_iam_role.dlm.arn
+  execution_role_arn = module.dlm_role.arn
   state              = "ENABLED"
 
   policy_details {
     resource_types = ["VOLUME"]
 
     target_tags = {
-      Snapshot = "true"
+      Environment = local.env
     }
 
     schedule {
