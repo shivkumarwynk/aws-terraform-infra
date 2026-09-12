@@ -136,7 +136,6 @@ module "vpc" {
   #intra_subnet_names       = ["int-${local.env}-subnet-1a", "int-non-${local.env}-subnet-1b"]
 
   create_database_subnet_group = false
-  manage_default_network_acl   = false
   private_dedicated_network_acl = true
   private_subnet_tags     = { Tier = "private" }
   public_subnet_tags      = { Tier = "public" }
