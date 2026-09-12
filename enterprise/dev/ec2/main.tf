@@ -39,16 +39,26 @@ data "aws_subnet_names" "db" {
 }
 
 data "aws_subnet" "vpn" {
-  name = local.subnet_names["vpn"]
+  filter {
+    name   = "tag:Name"
+    values = [local.subnet_names["vpn"]]
+  }
 }
 
-data "aws_subnet" "app" {
-  name = local.subnet_names["app"]
+data "aws_subnet" "jenkins" {
+  filter {
+    name   = "tag:Name"
+    values = [local.subnet_names["jenkins"]]
+  }
 }
 
-data "aws_subnet" "db" {
-  name = local.subnet_names["db"]
+data "aws_subnet" "mongo" {
+  filter {
+    name   = "tag:Name"
+    values = [local.subnet_names["mongo"]]
+  }
 }
+
 
 module "ec2_instance_vpn" {
   source = "../../../modules/v1/terraform-aws-ec2-instance"
