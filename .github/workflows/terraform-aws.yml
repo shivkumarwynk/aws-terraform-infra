@@ -20,6 +20,7 @@ on:
           - plan
           - apply
           - validate
+          - destroy
 
 permissions:
   contents: read
