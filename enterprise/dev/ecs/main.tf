@@ -221,7 +221,7 @@ resource "aws_ecs_cluster_capacity_providers" "cluster_capacity_providers" {
     weight            = 1
   }
 
-  lifecycle {
-    replace_triggered_by = [aws_ecs_capacity_provider.managed]
-  }
+  depends_on = [
+    aws_ecs_capacity_provider.managed
+  ]
 }
