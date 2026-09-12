@@ -358,7 +358,7 @@ resource "aws_security_group" "rds" {
 }
 #############
 resource "aws_security_group" "db" {
-  name        = "${local.name}-mongo-${local.env}-db"
+  name        = "${local.name}-${local.env}-db"
   description = "Allow mongodb inbound traffic"
   vpc_id      = module.vpc.vpc_id
 
