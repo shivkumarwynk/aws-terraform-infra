@@ -23,7 +23,6 @@ locals {
   internal_https_enabled = var.enable_internal_https && var.certificate_arn != ""
 
   vpc_id                   = data.aws_vpc.this.id
-  vpc_cidr                 = data.aws_vpc.this.cidr_block
   public_subnet_ids        = [for name in local.public_subnet_names : data.aws_subnet.public[name].id]
   private_subnet_ids       = [for name in local.private_subnet_names : data.aws_subnet.private[name].id]
   default_target_group_key = var.default_target_group_type
@@ -36,27 +35,27 @@ locals {
     }
   }
 
-  http_listener_external = var.enable_http ? (
-    local.https_enabled ? {
-      http = {
-        port     = 80
-        protocol = "HTTP"
-        redirect = {
-          port        = "443"
-          protocol    = "HTTPS"
-          status_code = "HTTP_301"
-        }
-      }
-      } : {
-      http = {
-        port     = 80
-        protocol = "HTTP"
-        forward = {
-          target_group_key = local.default_target_group_key
-        }
+  http_redirect_listener_external = var.enable_http && local.https_enabled ? {
+    http = {
+      port     = 80
+      protocol = "HTTP"
+      redirect = {
+        port        = "443"
+        protocol    = "HTTPS"
+        status_code = "HTTP_301"
       }
     }
-  ) : {}
+  } : {}
+
+  http_forward_listener_external = var.enable_http && !local.https_enabled ? {
+    http = {
+      port     = 80
+      protocol = "HTTP"
+      forward = {
+        target_group_key = local.default_target_group_key
+      }
+    }
+  } : {}
 
   https_listener_external = local.https_enabled ? {
     https = {
@@ -128,6 +127,30 @@ data "aws_subnet" "private" {
   }
 }
 
+data "aws_security_group" "external_alb" {
+  filter {
+    name   = "group-name"
+    values = ["${local.vpc_config.name}-alb-${local.environment}"]
+  }
+
+  filter {
+    name   = "vpc-id"
+    values = [local.vpc_id]
+  }
+}
+
+data "aws_security_group" "internal_alb" {
+  filter {
+    name   = "group-name"
+    values = ["${local.vpc_config.name}-${local.environment}-app"]
+  }
+
+  filter {
+    name   = "vpc-id"
+    values = [local.vpc_id]
+  }
+}
+
 ################################################################################
 # Internet-facing ALB (external) — HTTP and/or HTTPS
 ################################################################################
@@ -141,6 +164,8 @@ module "alb_external" {
   load_balancer_type         = "application"
   vpc_id                     = local.vpc_id
   subnets                    = local.public_subnet_ids
+  create_security_group      = false
+  security_groups            = [data.aws_security_group.external_alb.id]
   internal                   = false
   enable_deletion_protection = var.enable_deletion_protection
   enable_http2               = var.enable_http2
@@ -148,35 +173,11 @@ module "alb_external" {
   drop_invalid_header_fields = var.drop_invalid_header_fields
   access_logs                = var.access_logs
 
-  security_group_ingress_rules = merge(
-    var.enable_http ? {
-      http = {
-        from_port   = 80
-        to_port     = 80
-        ip_protocol = "tcp"
-        description = "HTTP"
-        cidr_ipv4   = "0.0.0.0/0"
-      }
-    } : {},
-    local.https_enabled ? {
-      https = {
-        from_port   = 443
-        to_port     = 443
-        ip_protocol = "tcp"
-        description = "HTTPS"
-        cidr_ipv4   = "0.0.0.0/0"
-      }
-    } : {}
+  listeners = merge(
+    local.http_redirect_listener_external,
+    local.http_forward_listener_external,
+    local.https_listener_external,
   )
-
-  security_group_egress_rules = {
-    all = {
-      ip_protocol = "-1"
-      cidr_ipv4   = "0.0.0.0/0"
-    }
-  }
-
-  listeners = merge(local.http_listener_external, local.https_listener_external)
 
   target_groups = {
     ip = {
@@ -245,40 +246,14 @@ module "alb_internal" {
   load_balancer_type         = "application"
   vpc_id                     = local.vpc_id
   subnets                    = local.private_subnet_ids
+  create_security_group      = false
+  security_groups            = [data.aws_security_group.internal_alb.id]
   internal                   = true
   enable_deletion_protection = var.enable_deletion_protection
   enable_http2               = var.enable_http2
   idle_timeout               = var.idle_timeout
   drop_invalid_header_fields = var.drop_invalid_header_fields
   access_logs                = var.access_logs
-
-  security_group_ingress_rules = merge(
-    var.enable_http ? {
-      http = {
-        from_port   = 80
-        to_port     = 80
-        ip_protocol = "tcp"
-        description = "HTTP from VPC"
-        cidr_ipv4   = local.vpc_cidr
-      }
-    } : {},
-    local.internal_https_enabled ? {
-      https = {
-        from_port   = 443
-        to_port     = 443
-        ip_protocol = "tcp"
-        description = "HTTPS from VPC"
-        cidr_ipv4   = local.vpc_cidr
-      }
-    } : {}
-  )
-
-  security_group_egress_rules = {
-    all = {
-      ip_protocol = "-1"
-      cidr_ipv4   = "0.0.0.0/0"
-    }
-  }
 
   listeners = merge(local.http_listener_internal, local.https_listener_internal)
 
