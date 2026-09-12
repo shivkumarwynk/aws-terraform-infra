@@ -114,7 +114,7 @@ variable "idle_timeout" {
 variable "enable_deletion_protection" {
   description = "Enable ALB deletion protection"
   type        = bool
-  default     = false
+  default     = true
 }
 
 variable "enable_http2" {
