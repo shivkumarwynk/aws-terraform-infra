@@ -10,7 +10,7 @@ locals {
   env              = basename(dirname(abspath(path.module)))
   vpc_config       = local.common.environments[local.env].vpc
   ami              = "ami-019715e0d74f695be"
-  key_name         = "wynk-staging"
+  key_name         = "WordpressBlogSecurityKey"
   instance_profile = "wynk-staging"
   subnet_names = merge({
     vpn = "lb-${local.name}-${local.env}-snet-1a"
