@@ -13,14 +13,14 @@ locals {
   key_name         = "wynk-staging"
   instance_profile = "wynk-staging"
   subnet_names = merge({
-    vpn     = "lb-${local.env}-subnet-1a"
-    jenkins = "app-${local.env}-subnet-1a"
-    mongo   = "app-${local.env}-subnet-1b"
+    vpn = "lb-${local.name}-${local.env}-snet-1a"
+    app = "app-${local.name}-${local.env}-snet-1a"
+    db   = "app-${local.name}-${local.env}-snet-1b"
   }, var.subnet_names)
   security_group_names = merge({
-    vpn     = "${local.vpc_config.name}-${local.env}-vpn"
-    jenkins = "${local.vpc_config.name}-${local.env}-app"
-    mongo   = "${local.vpc_config.name}-mongo-${local.env}-db"
+    vpn = "${local.vpc_config.name}-${local.env}-vpn"
+    app = "${local.vpc_config.name}-${local.env}-app"
+    db   = "${local.vpc_config.name}-${local.env}-db"
   }, var.security_group_names)
   common_tags = merge(local.common.tags, { Environment = local.env })
 }
@@ -35,34 +35,16 @@ module "ec2_instance_vpn" {
   instance_type = "t3a.medium"
   key_name      = local.key_name
   monitoring    = false
-  subnet_id     = module.network.subnet_ids["vpn"]
+  subnet_id     =  local.subnet_names["vpn"]
   ami           = local.ami
-  # ami = "ami-0848881f2a3dcebd1"
   iam_instance_profile   = local.instance_profile
-  vpc_security_group_ids = [module.network.security_group_ids["vpn"]]
+  vpc_security_group_ids = local.security_group_names["vpn"]
   tags = merge(local.common_tags, {
-    sprintoValue = "notprod"
+    tier = "vpn"
   })
 }
 
-module "ec2_instance_jenkins" {
-  source = "../../../modules/v1/terraform-aws-ec2-instance"
 
-  for_each = toset(["jenkins"])
-
-  name = "${local.env}-${each.key}"
-
-  instance_type          = "t3a.small"
-  key_name               = local.key_name
-  monitoring             = false
-  subnet_id              = module.network.subnet_ids["jenkins"]
-  ami                    = local.ami
-  iam_instance_profile   = local.instance_profile
-  vpc_security_group_ids = [module.network.security_group_ids["jenkins"]]
-  tags = merge(local.common_tags, {
-    sprintoValue = "notprod"
-  })
-}
 
 module "ec2_instance_mongo" {
   source = "../../../modules/v1/terraform-aws-ec2-instance"
@@ -74,11 +56,11 @@ module "ec2_instance_mongo" {
   instance_type          = "t3a.small"
   key_name               = local.key_name
   monitoring             = false
-  subnet_id              = module.network.subnet_ids["mongo"]
+  subnet_id              = local.subnet_names["db"]
   ami                    = local.ami
   iam_instance_profile   = local.instance_profile
-  vpc_security_group_ids = [module.network.security_group_ids["mongo"]]
+  vpc_security_group_ids = local.security_group_names["db"]
   tags = merge(local.common_tags, {
-    sprintoValue = "notprod"
+    tier = "db"
   })
 }
