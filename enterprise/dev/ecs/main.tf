@@ -162,11 +162,11 @@ module "instance_service_role" {
   tags = local.tags
 }
 
-resource "aws_cloudwatch_log_group" "ecs" {
-  name              = "/aws/ecs/${local.name}"
-  retention_in_days = 30
-  tags              = local.tags
-}
+#resource "aws_cloudwatch_log_group" "ecs" {
+#  name              = "/aws/ecs/${local.name}"
+##  retention_in_days = 30
+ # tags              = local.tags
+#}
 
 resource "aws_ecs_cluster" "this" {
   name = local.name
@@ -268,107 +268,6 @@ resource "aws_ecs_task_definition" "ip" {
     cpu_architecture        = "X86_64"
     operating_system_family = "LINUX"
   }
-
-  tags = local.tags
-}
-
-resource "aws_ecs_task_definition" "instance" {
-  family                   = "${local.name}-instance"
-  requires_compatibilities = ["MANAGED_INSTANCES"]
-  network_mode             = "host"
-  cpu                      = tostring(var.task_cpu)
-  memory                   = tostring(var.task_memory)
-  execution_role_arn       = module.task_execution_role.arn
-
-  container_definitions = jsonencode([
-    {
-      name      = "app-instance"
-      image     = var.container_image
-      essential = true
-      portMappings = [{
-        name          = "app-instance"
-        containerPort = var.container_port
-        hostPort      = var.container_port
-        protocol      = "tcp"
-      }]
-      logConfiguration = {
-        logDriver = "awslogs"
-        options = {
-          awslogs-group         = aws_cloudwatch_log_group.ecs.name
-          awslogs-region        = local.region
-          awslogs-stream-prefix = "instance"
-        }
-      }
-    }
-  ])
-
-  runtime_platform {
-    cpu_architecture        = "X86_64"
-    operating_system_family = "LINUX"
-  }
-
-  tags = local.tags
-}
-
-resource "aws_ecs_service" "ip" {
-  name                               = "${local.name}-ip"
-  cluster                            = aws_ecs_cluster.this.arn
-  task_definition                    = aws_ecs_task_definition.ip.arn
-  desired_count                      = var.ip_service_desired_count
-  deployment_minimum_healthy_percent = 50
-  deployment_maximum_percent         = 200
-  enable_ecs_managed_tags            = true
-  health_check_grace_period_seconds  = 60
-  wait_for_steady_state              = false
-
-  capacity_provider_strategy {
-    base              = 1
-    capacity_provider = aws_ecs_capacity_provider.managed.name
-    weight            = 1
-  }
-
-  network_configuration {
-    assign_public_ip = false
-    security_groups  = [data.aws_security_group.app.id]
-    subnets          = local.private_subnet_ids
-  }
-
-  load_balancer {
-    target_group_arn = data.aws_lb_target_group.ip.arn
-    container_name   = "app-ip"
-    container_port   = var.container_port
-  }
-
-  depends_on = [aws_ecs_cluster_capacity_providers.this]
-
-  tags = local.tags
-}
-
-resource "aws_ecs_service" "instance" {
-  name                               = "${local.name}-instance"
-  cluster                            = aws_ecs_cluster.this.arn
-  task_definition                    = aws_ecs_task_definition.instance.arn
-  desired_count                      = var.instance_service_desired_count
-  deployment_minimum_healthy_percent = 50
-  deployment_maximum_percent         = 200
-  enable_ecs_managed_tags            = true
-  health_check_grace_period_seconds  = 60
-  iam_role                           = module.instance_service_role.arn
-  wait_for_steady_state              = false
-
-  capacity_provider_strategy {
-    base              = 1
-    capacity_provider = aws_ecs_capacity_provider.managed.name
-    weight            = 1
-  }
-
-  load_balancer {
-    target_group_arn = data.aws_lb_target_group.instance.arn
-    container_name   = "app-instance"
-    container_port   = var.container_port
-  }
-
-  depends_on = [aws_ecs_cluster_capacity_providers.this]
 
   tags = local.tags
 }
