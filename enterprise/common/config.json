@@ -9,21 +9,21 @@
   "environments": {
     "dev": {
       "vpc": {
-        "name": "wynk",
+        "name": "enterprise",
         "vpc_cidr": "10.16.0.0/16",
         "availability_zone_count": 2
       }
     },
     "staging": {
       "vpc": {
-        "name": "wynk",
+        "name": "enterprise",
         "vpc_cidr": "10.15.0.0/16",
         "availability_zone_count": 2
       }
     },
     "prod": {
       "vpc": {
-        "name": "wynk",
+        "name": "enterprise",
         "vpc_cidr": "10.14.0.0/16",
         "availability_zone_count": 2
       }
