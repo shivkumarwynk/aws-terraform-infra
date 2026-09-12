@@ -64,6 +64,24 @@ module "vpc" {
   create_database_subnet_group = false
   manage_default_network_acl   = false
   private_dedicated_network_acl = true
+  private_subnet_tags     = { Tier = "private" }
+  public_subnet_tags      = { Tier = "public" }
+  database_subnet_tags    = { Tier = "database" }
+   ######route######
+  manage_default_route_table           = true
+  default_route_table_name             = "${local.name}-${local.env}-default"
+  default_route_table_tags             = { Name = "${local.name}-${local.env}-default" }
+  default_route_table_routes           = []
+  default_route_table_propagating_vgws = []
+  ######security######
+  manage_default_security_group  = true
+  default_security_group_name    = "${local.name}-${local.env}-default"
+  default_security_group_tags    = { Name = "${local.name}-${local.env}-default" }
+  default_security_group_ingress = []
+  default_security_group_egress  = []
+  #########
+  instance_tenancy               = "default"
+  map_public_ip_on_launch        = false
   private_inbound_acl_rules  = local.network_acls["default_inbound"]
   private_outbound_acl_rules = local.network_acls["default_outbound"]
   public_dedicated_network_acl = true
