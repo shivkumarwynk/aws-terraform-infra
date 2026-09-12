@@ -128,6 +128,40 @@ module "task_execution_role" {
   tags = local.tags
 }
 
+module "instance_service_role" {
+  source = "../../../modules/v1/terraform-aws-iam/modules/iam-role"
+
+  name                 = "${local.name}-instance-service"
+  use_name_prefix      = false
+  create_inline_policy = true
+
+  trust_policy_permissions = {
+    ECSAssumeRole = {
+      actions = ["sts:AssumeRole"]
+      principals = [{
+        type        = "Service"
+        identifiers = ["ecs.amazonaws.com"]
+      }]
+    }
+  }
+
+  inline_policy_permissions = {
+    LoadBalancerRegistration = {
+      actions = [
+        "ec2:Describe*",
+        "elasticloadbalancing:DeregisterInstancesFromLoadBalancer",
+        "elasticloadbalancing:DeregisterTargets",
+        "elasticloadbalancing:Describe*",
+        "elasticloadbalancing:RegisterInstancesWithLoadBalancer",
+        "elasticloadbalancing:RegisterTargets",
+      ]
+      resources = ["*"]
+    }
+  }
+
+  tags = local.tags
+}
+
 resource "aws_cloudwatch_log_group" "ecs" {
   name              = "/aws/ecs/${local.name}"
   retention_in_days = 30
@@ -284,7 +318,6 @@ resource "aws_ecs_service" "ip" {
   deployment_minimum_healthy_percent = 50
   deployment_maximum_percent         = 200
   enable_ecs_managed_tags            = true
-  enable_execute_command             = true
   health_check_grace_period_seconds  = 60
   wait_for_steady_state              = false
 
@@ -319,8 +352,8 @@ resource "aws_ecs_service" "instance" {
   deployment_minimum_healthy_percent = 50
   deployment_maximum_percent         = 200
   enable_ecs_managed_tags            = true
-  enable_execute_command             = true
   health_check_grace_period_seconds  = 60
+  iam_role                           = module.instance_service_role.arn
   wait_for_steady_state              = false
 
   capacity_provider_strategy {

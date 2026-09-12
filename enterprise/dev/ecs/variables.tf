@@ -29,7 +29,7 @@ variable "ip_service_desired_count" {
 }
 
 variable "instance_service_desired_count" {
-  description = "Desired task count for the bridge/instance target service"
+  description = "Desired task count for the host/instance target service"
   type        = number
   default     = 1
 }
