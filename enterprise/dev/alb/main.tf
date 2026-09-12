@@ -11,8 +11,8 @@ locals {
   region               = coalesce(var.region, local.common.region)
   workload_name        = coalesce(var.name, "enterprise")
   vpc_name             = coalesce(var.vpc_name, "${local.vpc_config.name}-${local.environment}")
-  public_subnet_names  = var.public_subnet_names != null ? var.public_subnet_names : [for suffix in ["1a", "1b"] : "lb-${local.environment}-subnet-${suffix}"]
-  private_subnet_names = var.private_subnet_names != null ? var.private_subnet_names : [for suffix in ["1a", "1b"] : "app-${local.environment}-subnet-${suffix}"]
+  public_subnet_names  = var.public_subnet_names != null ? var.public_subnet_names : [for suffix in ["1a", "1b"] : "lb-${local.vpc_name}-snet-${suffix}"]
+  private_subnet_names = var.private_subnet_names != null ? var.private_subnet_names : [for suffix in ["1a", "1b"] : "app-${local.vpc_name}-snet-${suffix}"]
 
   name = "${local.workload_name}-${local.environment}"
   tags = merge(local.common.tags, {
@@ -22,14 +22,15 @@ locals {
   https_enabled          = var.enable_https && var.certificate_arn != ""
   internal_https_enabled = var.enable_internal_https && var.certificate_arn != ""
 
-  vpc_id             = module.network.vpc_id
-  vpc_cidr           = module.network.vpc_cidr_block
-  public_subnet_ids  = [for name in local.public_subnet_names : module.network.subnet_ids[name]]
-  private_subnet_ids = [for name in local.private_subnet_names : module.network.subnet_ids[name]]
+  vpc_id                   = data.aws_vpc.this.id
+  vpc_cidr                 = data.aws_vpc.this.cidr_block
+  public_subnet_ids        = [for name in local.public_subnet_names : data.aws_subnet.public[name].id]
+  private_subnet_ids       = [for name in local.private_subnet_names : data.aws_subnet.private[name].id]
+  default_target_group_key = var.default_target_group_type
 
   additional_attachments = {
     for idx, id in var.target_ids : "target-${idx}" => {
-      target_group_key = "app"
+      target_group_key = "instance"
       target_id        = id
       port             = var.target_port
     }
@@ -51,7 +52,7 @@ locals {
         port     = 80
         protocol = "HTTP"
         forward = {
-          target_group_key = "app"
+          target_group_key = local.default_target_group_key
         }
       }
     }
@@ -64,7 +65,7 @@ locals {
       ssl_policy      = var.ssl_policy
       certificate_arn = var.certificate_arn
       forward = {
-        target_group_key = "app"
+        target_group_key = local.default_target_group_key
       }
     }
   } : {}
@@ -74,7 +75,7 @@ locals {
       port     = 80
       protocol = "HTTP"
       forward = {
-        target_group_key = "app"
+        target_group_key = local.default_target_group_key
       }
     }
   } : {}
@@ -86,10 +87,45 @@ locals {
       ssl_policy      = var.ssl_policy
       certificate_arn = var.certificate_arn
       forward = {
-        target_group_key = "app"
+        target_group_key = local.default_target_group_key
       }
     }
   } : {}
+}
+
+data "aws_vpc" "this" {
+  filter {
+    name   = "tag:Name"
+    values = [local.vpc_name]
+  }
+}
+
+data "aws_subnet" "public" {
+  for_each = toset(local.public_subnet_names)
+
+  filter {
+    name   = "tag:Name"
+    values = [each.value]
+  }
+
+  filter {
+    name   = "vpc-id"
+    values = [local.vpc_id]
+  }
+}
+
+data "aws_subnet" "private" {
+  for_each = toset(local.private_subnet_names)
+
+  filter {
+    name   = "tag:Name"
+    values = [each.value]
+  }
+
+  filter {
+    name   = "vpc-id"
+    values = [local.vpc_id]
+  }
 }
 
 ################################################################################
@@ -143,8 +179,30 @@ module "alb_external" {
   listeners = merge(local.http_listener_external, local.https_listener_external)
 
   target_groups = {
-    app = {
-      name_prefix = "appex"
+    ip = {
+      name        = "${local.name}-ext-ip"
+      protocol    = "HTTP"
+      port        = var.target_port
+      target_type = "ip"
+      vpc_id      = local.vpc_id
+
+      health_check = {
+        enabled             = true
+        path                = var.health_check_path
+        port                = "traffic-port"
+        protocol            = "HTTP"
+        matcher             = "200-399"
+        interval            = 30
+        timeout             = 5
+        healthy_threshold   = 2
+        unhealthy_threshold = 3
+      }
+
+      protocol_version  = "HTTP1"
+      create_attachment = false
+    }
+    instance = {
+      name        = "${local.name}-ext-ec2"
       protocol    = "HTTP"
       port        = var.target_port
       target_type = "instance"
@@ -225,8 +283,29 @@ module "alb_internal" {
   listeners = merge(local.http_listener_internal, local.https_listener_internal)
 
   target_groups = {
-    app = {
-      name_prefix = "appin"
+    ip = {
+      name        = "${local.name}-int-ip"
+      protocol    = "HTTP"
+      port        = var.target_port
+      target_type = "ip"
+      vpc_id      = local.vpc_id
+
+      health_check = {
+        enabled             = true
+        path                = var.health_check_path
+        port                = "traffic-port"
+        protocol            = "HTTP"
+        matcher             = "200-399"
+        interval            = 30
+        timeout             = 5
+        healthy_threshold   = 2
+        unhealthy_threshold = 3
+      }
+
+      create_attachment = false
+    }
+    instance = {
+      name        = "${local.name}-int-ec2"
       protocol    = "HTTP"
       port        = var.target_port
       target_type = "instance"
