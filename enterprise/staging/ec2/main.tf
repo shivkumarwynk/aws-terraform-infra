@@ -73,7 +73,7 @@ module "ec2_instance_vpn" {
   subnet_id     = module.network.subnet_ids["vpn"]
   ami           = local.ami
   # ami = "ami-0848881f2a3dcebd1"
-  iam_instance_profile   = module.ec2_instance_profile.iam_instance_profile_name
+  iam_instance_profile   = module.ec2_instance_profile.instance_profile_name
   root_block_device      = local.root_block_device
   vpc_security_group_ids = [module.network.security_group_ids["vpn"]]
   tags = merge(local.common_tags, {
@@ -93,7 +93,7 @@ module "ec2_instance_jenkins" {
   monitoring             = false
   subnet_id              = module.network.subnet_ids["jenkins"]
   ami                    = local.ami
-  iam_instance_profile   = module.ec2_instance_profile.iam_instance_profile_name
+  iam_instance_profile   = module.ec2_instance_profile.instance_profile_name
   root_block_device      = local.root_block_device
   vpc_security_group_ids = [module.network.security_group_ids["jenkins"]]
   tags = merge(local.common_tags, {
@@ -113,7 +113,7 @@ module "ec2_instance_mongo" {
   monitoring             = false
   subnet_id              = module.network.subnet_ids["mongo"]
   ami                    = local.ami
-  iam_instance_profile   = module.ec2_instance_profile.iam_instance_profile_name
+  iam_instance_profile   = module.ec2_instance_profile.instance_profile_name
   root_block_device      = local.root_block_device
   vpc_security_group_ids = [module.network.security_group_ids["mongo"]]
   tags = merge(local.common_tags, {
