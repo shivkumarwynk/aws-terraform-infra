@@ -41,6 +41,14 @@ locals {
       "rule_action" : "allow",
       "rule_number" : 98,
       "to_port" : 65535
+    },
+    {
+      "cidr_block" : "0.0.0.0/0",
+      "from_port" : 1024,
+      "protocol"  : "tcp",
+      "rule_action" : "allow",
+      "rule_number" : 97,
+      "to_port" : 65535
     }
     ]
     default_inbound = [
@@ -175,6 +183,14 @@ module "vpc" {
       protocol   = "-1"
       cidr_block = local.vpc_config.vpc_cidr
     },
+    {
+      rule_no    = 99
+      action     = "allow"
+      from_port  = 1024
+      to_port    = 65535
+      protocol   = "-1"
+      cidr_block = "0.0.0.0/0"
+    }
   ]
   default_network_acl_egress = [
     {
