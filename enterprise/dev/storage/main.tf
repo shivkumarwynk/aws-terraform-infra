@@ -1,7 +1,5 @@
 locals {
   bucket_names = [
-    "audit",
-    "logs",
     "backup",
     "application"
   ]
