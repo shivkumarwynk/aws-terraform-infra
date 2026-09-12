@@ -7,7 +7,7 @@ locals {
 
   env          = basename(dirname(abspath(path.module)))
   region       = local.common.region
-  repositories = toset(["frontend", "backend"])
+  repositories = toset(["frontend", "backend", "devops"])
   tags         = merge(local.common.tags, { Environment = local.env })
 
   lifecycle_policy = jsonencode({
