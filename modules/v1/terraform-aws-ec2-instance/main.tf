@@ -830,7 +830,6 @@ resource "aws_eip" "this" {
   instance = local.instance_id
   tags = merge(
     var.tags,
-    var.volume_tags,
     { "Name" = "${var.name}-${each.key}" },
     each.value.tags,
   )
