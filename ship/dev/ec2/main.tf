@@ -153,7 +153,4 @@ module "ec2_instance_fck_nat" {
 }
 
 
-#########EIP############
-}
-
 
