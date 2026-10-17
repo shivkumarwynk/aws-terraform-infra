@@ -16,9 +16,18 @@ locals {
   capacity_provider    = "${local.cluster_name}-managed"
   private_subnet_names = [for suffix in ["1a", "1b"] : "app-${local.vpc_name}-snet-${suffix}"]
   private_subnet_ids   = [for name in local.private_subnet_names : data.aws_subnet.private[name].id]
-  services             = jsondecode(file("${path.module}/services.json"))
   ecr_registry         = "${data.aws_caller_identity.current.account_id}.dkr.ecr.${local.region}.${data.aws_partition.current.dns_suffix}"
-  tags                 = merge(local.common.tags, { Environment = local.env })
+  service_files        = fileset(path.module, "svc/*.json")
+  services = {
+    for file in local.service_files :
+    trimsuffix(basename(file), ".json") => jsondecode(templatefile("${path.module}/${file}", {
+      cluster_name = local.cluster_name
+      ecr_registry = local.ecr_registry
+      log_group    = "/aws/ecs/${local.cluster_name}/${trimsuffix(basename(file), ".json")}"
+      region       = local.region
+    }))
+  }
+  tags = merge(local.common.tags, { Environment = local.env })
 }
 
 data "aws_vpc" "this" {
@@ -62,6 +71,38 @@ data "aws_iam_role" "task_execution" {
   name = "${local.cluster_name}-task-execution"
 }
 
+module "task_role" {
+  source = "../../../modules/v1/terraform-aws-iam/modules/iam-role"
+
+  name                 = "${local.cluster_name}-service-task"
+  use_name_prefix      = false
+  create_inline_policy = true
+
+  trust_policy_permissions = {
+    ECSTasksAssumeRole = {
+      actions = ["sts:AssumeRole"]
+      principals = [{
+        type        = "Service"
+        identifiers = ["ecs-tasks.amazonaws.com"]
+      }]
+    }
+  }
+
+  inline_policy_permissions = {
+    ECSExecChannels = {
+      actions = [
+        "ssmmessages:CreateControlChannel",
+        "ssmmessages:CreateDataChannel",
+        "ssmmessages:OpenControlChannel",
+        "ssmmessages:OpenDataChannel",
+      ]
+      resources = ["*"]
+    }
+  }
+
+  tags = local.tags
+}
+
 resource "aws_cloudwatch_log_group" "service" {
   for_each = local.services
 
@@ -77,45 +118,19 @@ resource "aws_cloudwatch_log_group" "service" {
 resource "aws_ecs_task_definition" "service" {
   for_each = local.services
 
-  family                   = "${local.cluster_name}-${each.key}"
-  requires_compatibilities = ["MANAGED_INSTANCES"]
-  network_mode             = "awsvpc"
-  cpu                      = tostring(each.value.cpu)
-  memory                   = tostring(each.value.memory)
+  family                   = each.value.task_definition.family
+  requires_compatibilities = each.value.task_definition.requires_compatibilities
+  network_mode             = each.value.task_definition.network_mode
+  cpu                      = each.value.task_definition.cpu
+  memory                   = each.value.task_definition.memory
   execution_role_arn       = data.aws_iam_role.task_execution.arn
+  task_role_arn            = module.task_role.arn
 
-  container_definitions = jsonencode([
-    {
-      name      = each.key
-      image     = "${local.ecr_registry}/${each.value.repository}:${each.value.image_tag}"
-      essential = true
-      cpu       = each.value.cpu
-      memory    = each.value.memory
-
-      portMappings = [
-        {
-          name          = "${each.key}-http"
-          containerPort = each.value.container_port
-          hostPort      = each.value.container_port
-          protocol      = "tcp"
-          appProtocol   = "http"
-        }
-      ]
-
-      logConfiguration = {
-        logDriver = "awslogs"
-        options = {
-          awslogs-group         = aws_cloudwatch_log_group.service[each.key].name
-          awslogs-region        = local.region
-          awslogs-stream-prefix = each.key
-        }
-      }
-    }
-  ])
+  container_definitions = jsonencode(each.value.task_definition.container_definitions)
 
   runtime_platform {
-    cpu_architecture        = "X86_64"
-    operating_system_family = "LINUX"
+    cpu_architecture        = each.value.task_definition.runtime_platform.cpu_architecture
+    operating_system_family = each.value.task_definition.runtime_platform.operating_system_family
   }
 
   tags = merge(local.tags, {
@@ -128,9 +143,9 @@ resource "aws_lb_target_group" "service" {
   for_each = local.services
 
   name        = "${local.vpc_name}-${each.key}"
-  port        = each.value.container_port
-  protocol    = "HTTP"
-  target_type = "ip"
+  port        = each.value.target_group.port
+  protocol    = each.value.target_group.protocol
+  target_type = each.value.target_group.target_type
   vpc_id      = data.aws_vpc.this.id
 
   deregistration_delay = 30
@@ -139,10 +154,10 @@ resource "aws_lb_target_group" "service" {
     enabled             = true
     healthy_threshold   = 2
     interval            = 30
-    matcher             = "200-399"
-    path                = each.value.health_check_path
+    matcher             = each.value.target_group.health_check_matcher
+    path                = each.value.target_group.health_check_path
     port                = "traffic-port"
-    protocol            = "HTTP"
+    protocol            = each.value.target_group.protocol
     timeout             = 5
     unhealthy_threshold = 3
   }
@@ -156,10 +171,11 @@ resource "aws_lb_target_group" "service" {
 resource "aws_ecs_service" "service" {
   for_each = local.services
 
-  name            = each.key
-  cluster         = data.aws_ecs_cluster.this.arn
-  task_definition = aws_ecs_task_definition.service[each.key].arn
-  desired_count   = each.value.desired_count
+  name                   = each.value.service_name
+  cluster                = data.aws_ecs_cluster.this.arn
+  task_definition        = aws_ecs_task_definition.service[each.key].arn
+  desired_count          = each.value.desired_count
+  enable_execute_command = each.value.enable_execute_command
 
   enable_ecs_managed_tags = true
   propagate_tags          = "SERVICE"

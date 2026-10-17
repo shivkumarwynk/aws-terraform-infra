@@ -1,0 +1,52 @@
+{
+  "service_name": "backend",
+  "desired_count": 1,
+  "enable_execute_command": true,
+  "task_definition": {
+    "family": "${cluster_name}-backend",
+    "network_mode": "awsvpc",
+    "requires_compatibilities": [
+      "MANAGED_INSTANCES"
+    ],
+    "cpu": "512",
+    "memory": "1024",
+    "runtime_platform": {
+      "cpu_architecture": "X86_64",
+      "operating_system_family": "LINUX"
+    },
+    "container_definitions": [
+      {
+        "name": "backend",
+        "image": "${ecr_registry}/backend:latest",
+        "essential": true,
+        "cpu": 512,
+        "memory": 1024,
+        "readonlyRootFilesystem": false,
+        "portMappings": [
+          {
+            "name": "backend-http",
+            "containerPort": 8080,
+            "hostPort": 8080,
+            "protocol": "tcp",
+            "appProtocol": "http"
+          }
+        ],
+        "logConfiguration": {
+          "logDriver": "awslogs",
+          "options": {
+            "awslogs-group": "${log_group}",
+            "awslogs-region": "${region}",
+            "awslogs-stream-prefix": "backend"
+          }
+        }
+      }
+    ]
+  },
+  "target_group": {
+    "port": 8080,
+    "protocol": "HTTP",
+    "target_type": "ip",
+    "health_check_path": "/",
+    "health_check_matcher": "200-399"
+  }
+}
