@@ -830,8 +830,7 @@ resource "aws_eip" "this" {
   instance = local.instance_id
   tags = merge(
     var.tags,
-    { "Name" = "${var.name}-${each.key}" },
-    each.value.tags,
+    { "Name" = "${var.name}-${each.key}" }
   )
   #tags = merge(var.tags, var.eip_tags)
 }
