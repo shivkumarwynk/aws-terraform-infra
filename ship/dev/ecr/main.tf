@@ -7,7 +7,7 @@ locals {
 
   env          = basename(dirname(abspath(path.module)))
   region       = local.common.region
-  repositories = toset(["shipturtle-staging-channel", "shipturtle-staging-php", "shipturtle-staging-web", "shipturtle-staging-php-channel"])
+  repositories = toset(["shipturtle-staging-channel", "shipturtle-staging-php", "shipturtle-staging-web", "shipturtle-staging-php-channel", "shipturtle-staging-common"])
   tags         = merge(local.common.tags, { Environment = local.env })
 
   lifecycle_policy = jsonencode({
