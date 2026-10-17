@@ -9,7 +9,7 @@ locals {
   name             = local.vpc_config.name
   region           = local.common.region
   ami              = "ami-019715e0d74f695be"
-  ami_nat          = "ami-04394a3a96907e9ec"
+  ami_nat          = "ami-0b1620c5cf7720f25"
   key_name         = "shipturtle-dev"
   iam_role_name = "${local.name}-${local.env}-ec2"
   root_block_device = {
