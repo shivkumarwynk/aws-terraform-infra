@@ -1,7 +1,7 @@
 terraform {
   backend "s3" {
-    bucket       = "visa2fly-db-migartion"
-    key          = "enterprise/dev/vpc/terraform.tfstate"
+    bucket       = "shipturtle-migartion"
+    key          = "shipturtle/dev/vpc/terraform.tfstate"
     region       = "ap-south-1"
   }
 }
