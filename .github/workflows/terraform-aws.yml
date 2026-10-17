@@ -9,7 +9,7 @@ on:
     inputs:
       location:
         description: Terraform directory (e.g. enterprise/ec2). Leave empty to auto-detect.
-        required: false
+        required: true
         type: string
       command:
         description: Terraform command
