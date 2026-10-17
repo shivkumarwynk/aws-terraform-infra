@@ -9,7 +9,7 @@ locals {
   environment          = coalesce(var.env, local.default_environment)
   vpc_config           = local.common.environments[local.environment].vpc
   region               = coalesce(var.region, local.common.region)
-  workload_name        = coalesce(var.name, "enterprise")
+  workload_name        = coalesce(var.name, "shipturtle")
   vpc_name             = coalesce(var.vpc_name, "${local.vpc_config.name}-${local.environment}")
   public_subnet_names  = var.public_subnet_names != null ? var.public_subnet_names : [for suffix in ["1a", "1b"] : "lb-${local.vpc_name}-snet-${suffix}"]
   private_subnet_names = var.private_subnet_names != null ? var.private_subnet_names : [for suffix in ["1a", "1b"] : "app-${local.vpc_name}-snet-${suffix}"]
