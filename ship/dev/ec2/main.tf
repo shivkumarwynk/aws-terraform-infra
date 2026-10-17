@@ -5,12 +5,12 @@ provider "aws" {
 locals {
   common = jsondecode(file("${path.module}/../../common/config.json"))
 
-  name             = "enterprise"
+  name             = "shipturtle"
   region           = local.common.region
   env              = basename(dirname(abspath(path.module)))
   vpc_config       = local.common.environments[local.env].vpc
   ami              = "ami-019715e0d74f695be"
-  key_name         = "WordpressBlogSecurityKey"
+  key_name         = "shipturtle-dev"
   iam_role_name = "${local.name}-${local.env}-ec2"
   root_block_device = {
     encrypted = true
@@ -108,22 +108,22 @@ module "ec2_instance_vpn" {
 
 
 
-module "ec2_instance_mongo" {
+module "ec2_instance_worker" {
   source = "../../../modules/v1/terraform-aws-ec2-instance"
 
-  for_each = toset(["mongo"])
+  for_each = toset(["worker"])
 
   name = "${local.env}-${each.key}"
 
   instance_type          = "t3a.small"
   key_name               = local.key_name
   monitoring             = false
-  subnet_id              = data.aws_subnet.db.id
+  subnet_id              = data.aws_subnet.app.id
   ami                    = local.ami
   iam_instance_profile   = module.ec2_instance_profile.instance_profile_name
   root_block_device      = local.root_block_device
   vpc_security_group_ids = [data.aws_security_group.app.id]
   tags = merge(local.common_tags, {
-    tier = "db"
+    tier = "worker"
   })
 }
