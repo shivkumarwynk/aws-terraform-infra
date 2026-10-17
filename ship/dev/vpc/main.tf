@@ -204,8 +204,8 @@ module "vpc" {
   ######Default NACL security######
   enable_dns_hostnames = true
   enable_dns_support   = true
-
-  enable_nat_gateway = true
+  ########we are using fck-nat########
+  enable_nat_gateway = false
   single_nat_gateway = true
 
   enable_vpn_gateway = false
