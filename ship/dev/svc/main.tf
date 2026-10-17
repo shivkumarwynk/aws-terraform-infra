@@ -21,6 +21,20 @@ locals {
     for file in local.service_files :
     trimsuffix(basename(file), ".json") => jsondecode(file("${path.module}/${file}"))
   }
+  service_port_mappings = {
+    for name, service in local.services : name => flatten([
+      for container in service.containerDefinitions : [
+        for mapping in try(container.portMappings, []) : {
+          container_name = container.name
+          container_port = mapping.containerPort
+        }
+      ]
+    ])
+  }
+  service_targets = {
+    for name, mappings in local.service_port_mappings :
+    name => mappings[0] if length(mappings) > 0
+  }
   tags = merge(local.common.tags, { Environment = local.env })
 }
 
@@ -148,10 +162,10 @@ resource "aws_ecs_task_definition" "service" {
 }
 
 resource "aws_lb_target_group" "service" {
-  for_each = local.services
+  for_each = local.service_targets
 
   name        = substr("${local.vpc_name}-${each.key}", 0, 32)
-  port        = each.value.containerDefinitions[0].portMappings[0].containerPort
+  port        = each.value.container_port
   protocol    = "HTTP"
   target_type = "ip"
   vpc_id      = data.aws_vpc.this.id
