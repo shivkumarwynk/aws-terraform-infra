@@ -10,6 +10,7 @@ locals {
   env              = basename(dirname(abspath(path.module)))
   vpc_config       = local.common.environments[local.env].vpc
   ami              = "ami-019715e0d74f695be"
+  ami_nat          = "ami-04394a3a96907e9ec"
   key_name         = "shipturtle-dev"
   iam_role_name = "${local.name}-${local.env}-ec2"
   root_block_device = {
@@ -141,7 +142,7 @@ module "ec2_instance_fck_nat" {
   key_name               = local.key_name
   monitoring             = false
   subnet_id              = data.aws_subnet.vpn.id
-  ami                    = local.ami
+  ami                    = local.ami_nat
   iam_instance_profile   = module.ec2_instance_profile.instance_profile_name
   root_block_device      = local.root_block_device
   vpc_security_group_ids = [data.aws_security_group.nat.id]
