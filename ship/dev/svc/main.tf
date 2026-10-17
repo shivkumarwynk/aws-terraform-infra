@@ -16,17 +16,10 @@ locals {
   capacity_provider    = "${local.cluster_name}-managed"
   private_subnet_names = [for suffix in ["1a", "1b"] : "app-${local.vpc_name}-snet-${suffix}"]
   private_subnet_ids   = [for name in local.private_subnet_names : data.aws_subnet.private[name].id]
-  ecr_registry         = "${data.aws_caller_identity.current.account_id}.dkr.ecr.${local.region}.${data.aws_partition.current.dns_suffix}"
   service_files        = fileset(path.module, "svc/*.json")
   services = {
     for file in local.service_files :
-    trimsuffix(basename(file), ".json") => jsondecode(templatefile("${path.module}/${file}", {
-      cluster_name = local.cluster_name
-      ecr_registry = local.ecr_registry
-      account_id   = data.aws_caller_identity.current.account_id
-      partition    = data.aws_partition.current.partition
-      region       = local.region
-    }))
+    trimsuffix(basename(file), ".json") => jsondecode(file("${path.module}/${file}"))
   }
   tags = merge(local.common.tags, { Environment = local.env })
 }
@@ -79,10 +72,16 @@ resource "aws_iam_role_policy" "create_log_groups" {
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
-      Sid      = "CreateServiceLogGroups"
-      Effect   = "Allow"
-      Action   = ["logs:CreateLogGroup"]
-      Resource = "arn:${data.aws_partition.current.partition}:logs:${local.region}:${data.aws_caller_identity.current.account_id}:log-group:/aws/ecs/${local.cluster_name}/*"
+      Sid    = "CreateServiceLogGroups"
+      Effect = "Allow"
+      Action = ["logs:CreateLogGroup"]
+      Resource = distinct(flatten([
+        for service in values(local.services) : [
+          for container in service.containerDefinitions :
+          "arn:${data.aws_partition.current.partition}:logs:${local.region}:${data.aws_caller_identity.current.account_id}:log-group:${container.logConfiguration.options["awslogs-group"]}"
+          if try(container.logConfiguration.logDriver, "") == "awslogs"
+        ]
+      ]))
     }]
   })
 }
@@ -90,19 +89,28 @@ resource "aws_iam_role_policy" "create_log_groups" {
 resource "aws_ecs_task_definition" "service" {
   for_each = local.services
 
-  family                   = each.value.task_definition.family
-  requires_compatibilities = each.value.task_definition.requires_compatibilities
-  network_mode             = each.value.task_definition.network_mode
-  cpu                      = each.value.task_definition.cpu
-  memory                   = each.value.task_definition.memory
-  execution_role_arn       = data.aws_iam_role.task_execution.arn
-  task_role_arn            = each.value.task_definition.task_role_arn
+  family                   = each.value.family
+  requires_compatibilities = each.value.requiresCompatibilities
+  network_mode             = each.value.networkMode
+  cpu                      = each.value.cpu
+  memory                   = each.value.memory
+  execution_role_arn       = each.value.executionRoleArn
+  task_role_arn            = each.value.taskRoleArn
 
-  container_definitions = jsonencode(each.value.task_definition.container_definitions)
+  container_definitions = jsonencode([
+    for container in each.value.containerDefinitions :
+    merge(container, {
+      logConfiguration = merge(container.logConfiguration, {
+        options = merge(container.logConfiguration.options, {
+          awslogs-create-group = "true"
+        })
+      })
+    })
+  ])
 
   runtime_platform {
-    cpu_architecture        = each.value.task_definition.runtime_platform.cpu_architecture
-    operating_system_family = each.value.task_definition.runtime_platform.operating_system_family
+    cpu_architecture        = "X86_64"
+    operating_system_family = "LINUX"
   }
 
   tags = merge(local.tags, {
@@ -114,10 +122,10 @@ resource "aws_ecs_task_definition" "service" {
 resource "aws_lb_target_group" "service" {
   for_each = local.services
 
-  name        = "${local.vpc_name}-${each.key}"
-  port        = each.value.target_group.port
-  protocol    = each.value.target_group.protocol
-  target_type = each.value.target_group.target_type
+  name        = substr("${local.vpc_name}-${each.key}", 0, 32)
+  port        = each.value.containerDefinitions[0].portMappings[0].containerPort
+  protocol    = "HTTP"
+  target_type = "ip"
   vpc_id      = data.aws_vpc.this.id
 
   deregistration_delay = 30
@@ -126,10 +134,10 @@ resource "aws_lb_target_group" "service" {
     enabled             = true
     healthy_threshold   = 2
     interval            = 30
-    matcher             = each.value.target_group.health_check_matcher
-    path                = each.value.target_group.health_check_path
+    matcher             = "200-399"
+    path                = "/"
     port                = "traffic-port"
-    protocol            = each.value.target_group.protocol
+    protocol            = "HTTP"
     timeout             = 5
     unhealthy_threshold = 3
   }
@@ -143,11 +151,11 @@ resource "aws_lb_target_group" "service" {
 resource "aws_ecs_service" "service" {
   for_each = local.services
 
-  name                   = each.value.service_name
+  name                   = each.key
   cluster                = data.aws_ecs_cluster.this.arn
   task_definition        = aws_ecs_task_definition.service[each.key].arn
-  desired_count          = each.value.desired_count
-  enable_execute_command = each.value.enable_execute_command
+  desired_count          = 1
+  enable_execute_command = true
 
   enable_ecs_managed_tags = true
   propagate_tags          = "SERVICE"

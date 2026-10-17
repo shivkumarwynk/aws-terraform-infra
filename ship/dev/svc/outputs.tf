@@ -13,8 +13,8 @@ output "service_target_groups" {
   value = {
     for name, target_group in aws_lb_target_group.service : name => {
       arn            = target_group.arn
-      container_name = local.services[name].task_definition.container_definitions[0].name
-      container_port = local.services[name].target_group.port
+      container_name = local.services[name].containerDefinitions[0].name
+      container_port = local.services[name].containerDefinitions[0].portMappings[0].containerPort
     }
   }
 }
