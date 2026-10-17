@@ -103,7 +103,9 @@ resource "aws_iam_role_policy" "create_log_groups" {
           for service in values(local.services) : flatten([
             for container in service.containerDefinitions : [
               for secret in try(container.secrets, []) :
-              join(":", slice(split(":", secret.valueFrom), 0, 7))
+              startswith(secret.valueFrom, "arn:") ?
+              join(":", slice(split(":", secret.valueFrom), 0, min(7, length(split(":", secret.valueFrom))))) :
+              "arn:${data.aws_partition.current.partition}:secretsmanager:${local.region}:${data.aws_caller_identity.current.account_id}:secret:${secret.valueFrom}*"
             ]
           ])
         ]))
