@@ -1,0 +1,29 @@
+{
+  "frontend": {
+    "repository": "frontend",
+    "image_tag": "latest",
+    "container_port": 80,
+    "cpu": 512,
+    "memory": 1024,
+    "desired_count": 1,
+    "health_check_path": "/"
+  },
+  "backend": {
+    "repository": "backend",
+    "image_tag": "latest",
+    "container_port": 8080,
+    "cpu": 512,
+    "memory": 1024,
+    "desired_count": 1,
+    "health_check_path": "/"
+  },
+  "devops": {
+    "repository": "devops",
+    "image_tag": "latest",
+    "container_port": 8081,
+    "cpu": 512,
+    "memory": 1024,
+    "desired_count": 1,
+    "health_check_path": "/"
+  }
+}

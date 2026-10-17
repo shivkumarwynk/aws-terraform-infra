@@ -160,7 +160,7 @@ resource "aws_ecs_cluster" "ecs" {
   name = local.name
 
   setting {
-    name  = "containerInsights"
+    name = "containerInsights"
     #value = "enhanced"
     value = "enabled"
   }
