@@ -5,8 +5,8 @@ locals {
   name        = local.common.environments[local.env].vpc.name
   common_tags = merge(local.common.tags, { Environment = local.env })
   bucket_names = [
-    "backup",
-    "application"
+    "marketing-shipturtle-medias",
+    "development-shipturtle-media"
   ]
 }
 
