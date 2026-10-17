@@ -1,0 +1,122 @@
+{
+    "family": "ship-php-staging",
+    "containerDefinitions": [
+        {
+            "name": "config-init",
+            "image": "public.ecr.aws/docker/library/busybox:stable",
+            "cpu": 0,
+            "portMappings": [],
+            "essential": false,
+            "command": [
+                "sh",
+                "-c",
+                "printf '%s' \"$PHP_ENV_CONFIG\" > /config/shipturtle && chmod 444 /config/shipturtle"
+            ],
+            "environment": [],
+            "mountPoints": [
+                {
+                    "sourceVolume": "php-env-config",
+                    "containerPath": "/config",
+                    "readOnly": false
+                }
+            ],
+            "volumesFrom": [],
+            "secrets": [
+                {
+                    "name": "PHP_ENV_CONFIG",
+                    "valueFrom": "__SECRET_ARN__"
+                }
+            ],
+            "logConfiguration": {
+                "logDriver": "awslogs",
+                "options": {
+                    "awslogs-group": "/ecs/staging/ship-php",
+                    "awslogs-region": "ap-south-1",
+                    "awslogs-stream-prefix": "config-init"
+                },
+                "secretOptions": []
+            },
+            "systemControls": []
+        },
+        {
+            "name": "ship-php",
+            "image": "nginx",
+            "cpu": 0,
+            "portMappings": [
+                {
+                    "containerPort": 80,
+                    "hostPort": 80,
+                    "protocol": "tcp",
+                    "name": "http",
+                    "appProtocol": "http"
+                }
+            ],
+            "essential": true,
+            "environment": [
+                {
+                    "name": "CONTAINER_ROLE",
+                    "value": "app"
+                }
+            ],
+            "mountPoints": [
+                {
+                    "sourceVolume": "php-env-config",
+                    "containerPath": "/run/secrets",
+                    "readOnly": true
+                }
+            ],
+            "volumesFrom": [],
+            "linuxParameters": {
+                "capabilities": {
+                    "add": [],
+                    "drop": [
+                        "NET_RAW"
+                    ]
+                },
+                "initProcessEnabled": true
+            },
+            "dependsOn": [
+                {
+                    "containerName": "config-init",
+                    "condition": "SUCCESS"
+                }
+            ],
+            "stopTimeout": 30,
+            "logConfiguration": {
+                "logDriver": "awslogs",
+                "options": {
+                    "awslogs-group": "/ecs/staging/ship-php",
+                    "awslogs-region": "ap-south-1",
+                    "awslogs-stream-prefix": "ship-php"
+                },
+                "secretOptions": []
+            },
+            "systemControls": []
+        }
+    ],
+    "taskRoleArn": "arn:aws:iam::667173675677:role/shipturtle-dev-ecs-task-execution",
+    "executionRoleArn": "arn:aws:iam::667173675677:role/shipturtle-dev-ecs-task-execution",
+    "networkMode": "awsvpc",
+    "volumes": [
+        {
+            "name": "php-env-config",
+            "host": {}
+        }
+    ],
+    "placementConstraints": [],
+    "requiresCompatibilities": [
+        "MANAGED_INSTANCES"
+    ],
+    "cpu": "2048",
+    "memory": "4096",
+    "tags": [
+        {
+            "key": "Environment",
+            "value": "staging"
+        },
+        {
+            "key": "Service",
+            "value": "ship-php"
+        }
+    ]
+}
