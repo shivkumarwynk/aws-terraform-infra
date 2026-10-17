@@ -67,7 +67,7 @@ variable "enable_internal_https" {
 variable "certificate_arn" {
   description = "ACM certificate ARN for HTTPS listeners. Leave empty to run HTTP only"
   type        = string
-  default     = "arn:aws:acm:ap-south-1:667173675677:certificate/c681e93d-9f0c-4ebc-8014-62f249c206524"
+  default     = "arn:aws:acm:ap-south-1:667173675677:certificate/c681e93d-9f0c-4ebc-8014-62f249c20652"
 }
 
 variable "ssl_policy" {
