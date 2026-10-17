@@ -1,0 +1,130 @@
+{
+    "family": "ship-channel-staging",
+    "containerDefinitions": [
+        {
+            "name": "ship-channel",
+            "image": "667173675677.dkr.ecr.ap-south-1.amazonaws.com/ship-staging/ship-channel:72cabbabe80475c8d23292b1dfedbab19e09e4ec",
+            "cpu": 0,
+            "portMappings": [
+                {
+                    "containerPort": 8080,
+                    "hostPort": 8080,
+                    "protocol": "tcp",
+                    "name": "http",
+                    "appProtocol": "http"
+                }
+            ],
+            "essential": true,
+            "environment": [
+                {
+                    "name": "REDIS_HOST",
+                    "value": "10.30.3.2"
+                },
+                {
+                    "name": "POSTGRES_HOST",
+                    "value": "10.234.80.7"
+                },
+                {
+                    "name": "CHANNELS_GCS_BASE_URL",
+                    "value": "https://static.shipturtle.app/"
+                },
+                {
+                    "name": "CHANNELS_PHP_URL",
+                    "value": "https://api.beta.shipturtle.app/api/v1/"
+                },
+                {
+                    "name": "spring_profiles_active",
+                    "value": "staging"
+                },
+                {
+                    "name": "METADATA_ENCRYPTION_CURRENT_VERSION",
+                    "value": "1"
+                },
+                {
+                    "name": "REDIS_PORT",
+                    "value": "6379"
+                },
+                {
+                    "name": "CHANNELS_GCS_BUCKET",
+                    "value": "development-shipturtle-media"
+                },
+                {
+                    "name": "CHANNELS_GCS_PREFIX",
+                    "value": "channel"
+                },
+                {
+                    "name": "CHANNELS_SELF_URL",
+                    "value": "https://channel.beta.shipturtle.app"
+                },
+                {
+                    "name": "CHANNELS_GCS_PROJECT_ID",
+                    "value": "prj-shipturtle-dev-svc-01"
+                },
+                {
+                    "name": "REDIS_DATABASE",
+                    "value": "4"
+                },
+                {
+                    "name": "CHANNELS_REDIRECT_URL",
+                    "value": "https://next.beta.shipturtle.app"
+                }
+            ],
+            "mountPoints": [],
+            "volumesFrom": [],
+            "linuxParameters": {
+                "capabilities": {
+                    "add": [],
+                    "drop": [
+                        "NET_RAW"
+                    ]
+                },
+                "initProcessEnabled": true
+            },
+            "secrets": [
+                {
+                    "name": "ENCRYPTION_ADMIN_KEY",
+                    "valueFrom": "arn:aws:secretsmanager:ap-south-1:667173675677:secret:staging/ship-channel/env-XXXXXX:ENCRYPTION_ADMIN_KEY::"
+                },
+                {
+                    "name": "METADATA_ENCRYPTION_KEY_V1",
+                    "valueFrom": "arn:aws:secretsmanager:ap-south-1:667173675677:secret:staging/ship-channel/env-XXXXXX:METADATA_ENCRYPTION_KEY_V1::"
+                },
+                {
+                    "name": "POSTGRES_PASSWORD",
+                    "valueFrom": "arn:aws:secretsmanager:ap-south-1:667173675677:secret:staging/ship-channel/env-XXXXXX:POSTGRES_PASSWORD::"
+                }
+            ],
+            "stopTimeout": 30,
+            "logConfiguration": {
+                "logDriver": "awslogs",
+                "options": {
+                    "awslogs-group": "/ecs/staging/ship-channel",
+                    "awslogs-region": "ap-south-1",
+                    "awslogs-stream-prefix": "ship-channel"
+                },
+                "secretOptions": []
+            },
+            "systemControls": []
+        }
+    ],
+    "taskRoleArn": "arn:aws:iam::667173675677:role/shipturtle-dev-ecs-task-execution",
+    "executionRoleArn": "arn:aws:iam::667173675677:role/shipturtle-dev-ecs-task-execution",
+    "networkMode": "awsvpc",
+    "volumes": [],
+    "placementConstraints": [],
+    "requiresCompatibilities": [
+        "MANAGED_INSTANCES"
+    ],
+    "cpu": "2048",
+    "memory": "4096",
+    "tags": [
+        {
+            "key": "Environment",
+            "value": "staging"
+        },
+        {
+            "key": "Service",
+            "value": "ship-channel"
+        }
+    ]
+}
