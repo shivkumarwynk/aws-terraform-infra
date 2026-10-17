@@ -1,0 +1,54 @@
+{
+  "service_name": "devops",
+  "desired_count": 1,
+  "enable_execute_command": true,
+  "task_definition": {
+    "family": "${cluster_name}-devops",
+    "network_mode": "awsvpc",
+    "requires_compatibilities": [
+      "MANAGED_INSTANCES"
+    ],
+    "cpu": "512",
+    "memory": "1024",
+    "task_role_arn": "arn:${partition}:iam::${account_id}:role/${cluster_name}-service-task",
+    "runtime_platform": {
+      "cpu_architecture": "X86_64",
+      "operating_system_family": "LINUX"
+    },
+    "container_definitions": [
+      {
+        "name": "devops",
+        "image": "${ecr_registry}/devops:latest",
+        "essential": true,
+        "cpu": 512,
+        "memory": 1024,
+        "readonlyRootFilesystem": false,
+        "portMappings": [
+          {
+            "name": "devops-http",
+            "containerPort": 8081,
+            "hostPort": 8081,
+            "protocol": "tcp",
+            "appProtocol": "http"
+          }
+        ],
+        "logConfiguration": {
+          "logDriver": "awslogs",
+          "options": {
+            "awslogs-create-group": "true",
+            "awslogs-group": "/aws/ecs/${cluster_name}/devops",
+            "awslogs-region": "${region}",
+            "awslogs-stream-prefix": "devops"
+          }
+        }
+      }
+    ]
+  },
+  "target_group": {
+    "port": 8081,
+    "protocol": "HTTP",
+    "target_type": "ip",
+    "health_check_path": "/",
+    "health_check_matcher": "200-399"
+  }
+}
