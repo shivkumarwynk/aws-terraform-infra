@@ -28,6 +28,11 @@ locals {
     nat   = "${local.vpc_config.name}-${local.env}-fck-nat"
   }, var.security_group_names)
   common_tags = merge(local.common.tags, { Environment = local.env })
+
+ eip_names = [
+    "vpn-1a",
+    "fck-nat-1a"
+  ]
 }
 
 data "aws_security_group" "vpn" {
@@ -149,3 +154,18 @@ module "ec2_instance_fck_nat" {
     tier = "fck-nat"
   })
 }
+
+
+
+#########EIP############
+resource "aws_eip" "eip" {
+  for_each = toset(local.eip_names)
+  region = local.region
+  domain = "vpc"
+  name = "${local.name}-${local.env}-each.value"
+  tags = merge(local.common_tags, {
+    tier = "eip"
+  })
+}
+
+
