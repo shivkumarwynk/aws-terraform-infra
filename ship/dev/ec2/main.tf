@@ -102,6 +102,7 @@ module "ec2_instance_vpn" {
   key_name      = local.key_name
   monitoring    = false
   subnet_id     =  data.aws_subnet.vpn.id
+  create_eip             = true
   ami           = local.ami
   iam_instance_profile   = module.ec2_instance_profile.instance_profile_name
   root_block_device      = local.root_block_device
@@ -138,6 +139,7 @@ module "ec2_instance_fck_nat" {
   for_each = toset(["fck-nat"])
   name = "${local.name}-${local.env}-${each.key}"
   instance_type          = "t3a.small"
+  create_eip             = true
   key_name               = local.key_name
   monitoring             = false
   subnet_id              = data.aws_subnet.vpn.id
@@ -149,3 +151,9 @@ module "ec2_instance_fck_nat" {
     tier = "fck-nat"
   })
 }
+
+
+#########EIP############
+}
+
+
