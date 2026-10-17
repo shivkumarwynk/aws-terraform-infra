@@ -23,7 +23,8 @@ locals {
     trimsuffix(basename(file), ".json") => jsondecode(templatefile("${path.module}/${file}", {
       cluster_name = local.cluster_name
       ecr_registry = local.ecr_registry
-      log_group    = "/aws/ecs/${local.cluster_name}/${trimsuffix(basename(file), ".json")}"
+      account_id   = data.aws_caller_identity.current.account_id
+      partition    = data.aws_partition.current.partition
       region       = local.region
     }))
   }
@@ -71,47 +72,18 @@ data "aws_iam_role" "task_execution" {
   name = "${local.cluster_name}-task-execution"
 }
 
-module "task_role" {
-  source = "../../../modules/v1/terraform-aws-iam/modules/iam-role"
+resource "aws_iam_role_policy" "create_log_groups" {
+  name = "${local.cluster_name}-create-log-groups"
+  role = data.aws_iam_role.task_execution.name
 
-  name                 = "${local.cluster_name}-service-task"
-  use_name_prefix      = false
-  create_inline_policy = true
-
-  trust_policy_permissions = {
-    ECSTasksAssumeRole = {
-      actions = ["sts:AssumeRole"]
-      principals = [{
-        type        = "Service"
-        identifiers = ["ecs-tasks.amazonaws.com"]
-      }]
-    }
-  }
-
-  inline_policy_permissions = {
-    ECSExecChannels = {
-      actions = [
-        "ssmmessages:CreateControlChannel",
-        "ssmmessages:CreateDataChannel",
-        "ssmmessages:OpenControlChannel",
-        "ssmmessages:OpenDataChannel",
-      ]
-      resources = ["*"]
-    }
-  }
-
-  tags = local.tags
-}
-
-resource "aws_cloudwatch_log_group" "service" {
-  for_each = local.services
-
-  name              = "/aws/ecs/${local.cluster_name}/${each.key}"
-  retention_in_days = 30
-
-  tags = merge(local.tags, {
-    Name    = "/aws/ecs/${local.cluster_name}/${each.key}"
-    Service = each.key
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Sid      = "CreateServiceLogGroups"
+      Effect   = "Allow"
+      Action   = ["logs:CreateLogGroup"]
+      Resource = "arn:${data.aws_partition.current.partition}:logs:${local.region}:${data.aws_caller_identity.current.account_id}:log-group:/aws/ecs/${local.cluster_name}/*"
+    }]
   })
 }
 
@@ -124,7 +96,7 @@ resource "aws_ecs_task_definition" "service" {
   cpu                      = each.value.task_definition.cpu
   memory                   = each.value.task_definition.memory
   execution_role_arn       = data.aws_iam_role.task_execution.arn
-  task_role_arn            = module.task_role.arn
+  task_role_arn            = each.value.task_definition.task_role_arn
 
   container_definitions = jsonencode(each.value.task_definition.container_definitions)
 

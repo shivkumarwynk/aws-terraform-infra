@@ -10,6 +10,7 @@
     ],
     "cpu": "512",
     "memory": "1024",
+    "task_role_arn": "arn:${partition}:iam::${account_id}:role/${cluster_name}-service-task",
     "runtime_platform": {
       "cpu_architecture": "X86_64",
       "operating_system_family": "LINUX"
@@ -34,7 +35,8 @@
         "logConfiguration": {
           "logDriver": "awslogs",
           "options": {
-            "awslogs-group": "${log_group}",
+            "awslogs-create-group": "true",
+            "awslogs-group": "/aws/ecs/${cluster_name}/backend",
             "awslogs-region": "${region}",
             "awslogs-stream-prefix": "backend"
           }
