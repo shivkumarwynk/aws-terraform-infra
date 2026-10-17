@@ -15,7 +15,7 @@ module "storage_buckets" {
 
   source = "../../../modules/v1/terraform-aws-s3-bucket"
 
-  bucket        = "${local.name}-${local.env}-${each.key}"
+  bucket        = "${each.key}-${local.env}"
   force_destroy = false
 
   control_object_ownership = true
