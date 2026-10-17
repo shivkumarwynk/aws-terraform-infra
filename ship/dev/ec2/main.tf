@@ -138,7 +138,7 @@ module "ec2_instance_fck_nat" {
   source = "../../../modules/v1/terraform-aws-ec2-instance"
   for_each = toset(["fck-nat"])
   name = "${local.name}-${local.env}-${each.key}"
-  instance_type          = "t3a.small"
+  instance_type          = "t4g.nano"
   create_eip             = true
   key_name               = local.key_name
   monitoring             = false
