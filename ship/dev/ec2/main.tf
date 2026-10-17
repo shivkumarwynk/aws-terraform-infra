@@ -144,7 +144,7 @@ module "ec2_instance_fck_nat" {
   monitoring             = false
   subnet_id              = data.aws_subnet.vpn.id
   ami                    = local.ami_nat
-  source_dest_check      = false
+  source_dest_check      = true
   iam_instance_profile   = module.ec2_instance_profile.instance_profile_name
   root_block_device      = local.root_block_device
   vpc_security_group_ids = [data.aws_security_group.nat.id]
