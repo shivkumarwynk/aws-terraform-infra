@@ -1,7 +1,6 @@
 provider "aws" {
   region = local.region
 }
-
 locals {
   common = jsondecode(file("${path.module}/../../common/config.json"))
   env              = basename(dirname(abspath(path.module)))
