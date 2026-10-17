@@ -47,6 +47,5 @@ resource "aws_secretsmanager_secret" "service" {
     Name       = "${each.value.environment}/${each.value.workload}/env"
     Service    = each.key
     AWSAccount = data.aws_caller_identity.current.account_id
-    SecretKeys = join(",", each.value.keys)
   })
 }
