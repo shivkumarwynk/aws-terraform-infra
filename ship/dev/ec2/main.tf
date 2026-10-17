@@ -8,7 +8,6 @@ locals {
   vpc_config       = local.common.environments[local.env].vpc
   name             = local.vpc_config.name
   region           = local.common.region
-  env              = basename(dirname(abspath(path.module)))
   ami              = "ami-019715e0d74f695be"
   ami_nat          = "ami-04394a3a96907e9ec"
   key_name         = "shipturtle-dev"
