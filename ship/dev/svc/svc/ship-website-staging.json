@@ -3,7 +3,7 @@
     "containerDefinitions": [
         {
             "name": "ship-website",
-            "image": "__ECR_IMAGE__",
+            "image": "667173675677.dkr.ecr.ap-south-1.amazonaws.com/shipturtle-staging-web:latest",
             "cpu": 0,
             "portMappings": [
                 {
