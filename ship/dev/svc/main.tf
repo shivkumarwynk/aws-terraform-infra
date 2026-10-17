@@ -229,8 +229,12 @@ resource "aws_ecs_service" "service" {
   }
 
   lifecycle {
-    # Preserve target groups added manually after their ALB listener rules exist.
-    ignore_changes = [load_balancer]
+    # Preserve manually attached target groups. Managed Instances supports one
+    # provider, and resending an unchanged strategy can be rejected by ECS.
+    ignore_changes = [
+      load_balancer,
+      capacity_provider_strategy,
+    ]
   }
 
   tags = merge(local.tags, {
