@@ -9,4 +9,5 @@
 #          and ENTERPRISE_AWS_SECRET_ACCESS_KEY
 enterprise
 airtel
+ship
 wynk

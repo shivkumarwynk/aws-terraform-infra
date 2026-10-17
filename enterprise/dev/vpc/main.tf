@@ -239,61 +239,59 @@ module "vpc_endpoints" {
 
   endpoints = {
     s3 = {
-      service             = "s3"
-      private_dns_enabled = true
-      subnet_ids          = module.vpc.private_subnets
-      dns_options = {
-        private_dns_only_for_inbound_resolver_endpoint = false
-      }
-      tags = { Name = "s3-vpc-endpoint-${local.env}" }
-    },
-    dynamodb = {
-      service         = "dynamodb"
+      service         = "s3"
       service_type    = "Gateway"
       route_table_ids = flatten([module.vpc.intra_route_table_ids, module.vpc.private_route_table_ids, module.vpc.public_route_table_ids])
-      policy          = data.aws_iam_policy_document.dynamodb_endpoint_policy.json
-      tags            = { Name = "dynamodb-vpc-endpoint-${local.env}" }
+      policy          = data.aws_iam_policy_document.s3_endpoint_policy.json
+      tags = { Name = "s3-vpc-endpoint-${local.env}" }
     },
-    ecs = {
-      service             = "ecs"
-      private_dns_enabled = true
-      subnet_ids          = module.vpc.private_subnets
-      subnet_configurations = [
-        for v in module.vpc.private_subnet_objects :
-        {
-          ipv4      = cidrhost(v.cidr_block, 10)
-          subnet_id = v.id
-        }
-      ]
-      tags = { Name = "ecs-vpc-endpoint-${local.env}" }
-    },
-    ecs_telemetry = {
-      create              = true
-      service             = "ecs-telemetry"
-      private_dns_enabled = true
-      subnet_ids          = module.vpc.private_subnets
-      tags                = { Name = "ecs-telemetry-vpc-endpoint-${local.env}" }
-    },
-    ecr_api = {
-      service             = "ecr.api"
-      private_dns_enabled = true
-      subnet_ids          = module.vpc.private_subnets
-      tags                = { Name = "ecr-api-vpc-endpoint-${local.env}" }
-    },
-    ecr_dkr = {
-      service             = "ecr.dkr"
-      private_dns_enabled = true
-      subnet_ids          = module.vpc.private_subnets
-      #policy              = data.aws_iam_policy_document.generic_endpoint_policy.json
-      tags = { Name = "ecr-dkr-vpc-endpoint-${local.env}" }
-    },
-    rds = {
-      service             = "rds"
-      private_dns_enabled = true
-      subnet_ids          = module.vpc.private_subnets
-      security_group_ids  = [aws_security_group.rds.id]
-      tags                = { Name = "rds-endpoint-${local.env}" }
-    },
+    #dynamodb = {
+    #  service         = "dynamodb"
+    #  service_type    = "Gateway"
+    # route_table_ids = flatten([module.vpc.intra_route_table_ids, module.vpc.private_route_table_ids, module.vpc.public_route_table_ids])
+     # policy          = data.aws_iam_policy_document.dynamodb_endpoint_policy.json
+    # tags            = { Name = "dynamodb-vpc-endpoint-${local.env}" }
+    #},
+    #ecs = {
+    #  service             = "ecs"
+    #  private_dns_enabled = true
+    #  subnet_ids          = module.vpc.private_subnets
+    #  subnet_configurations = [
+    #    for v in module.vpc.private_subnet_objects :
+    #    {
+    #      ipv4      = cidrhost(v.cidr_block, 10)
+    #      subnet_id = v.id
+    #    }
+    #  ]
+    #  tags = { Name = "ecs-vpc-endpoint-${local.env}" }
+    #},
+    #ecs_telemetry = {
+    #  create              = true
+    #  service             = "ecs-telemetry"
+    #  private_dns_enabled = true
+    #  subnet_ids          = module.vpc.private_subnets
+    # tags                = { Name = "ecs-telemetry-vpc-endpoint-${local.env}" }
+    #},
+    #ecr_api = {
+    #  service             = "ecr.api"
+    #  private_dns_enabled = true
+    #  subnet_ids          = module.vpc.private_subnets
+    #  tags                = { Name = "ecr-api-vpc-endpoint-${local.env}" }
+    #},
+    #ecr_dkr = {
+    #  service             = "ecr.dkr"
+    #  private_dns_enabled = true
+    #  subnet_ids          = module.vpc.private_subnets
+    #  #policy              = data.aws_iam_policy_document.generic_endpoint_policy.json
+    #  tags = { Name = "ecr-dkr-vpc-endpoint-${local.env}" }
+    #},
+    #rds = {
+    #  service             = "rds"
+    #  private_dns_enabled = true
+    #  subnet_ids          = module.vpc.private_subnets
+    # security_group_ids  = [aws_security_group.rds.id]
+    #  tags                = { Name = "rds-endpoint-${local.env}" }
+    #},
   }
 
   tags = merge(local.tags, {
@@ -311,10 +309,10 @@ module "vpc_endpoints_nocreate" {
 # Supporting Resources
 ################################################################################
 
-data "aws_iam_policy_document" "dynamodb_endpoint_policy" {
+data "aws_iam_policy_document" "s3_endpoint_policy" {
   statement {
     effect    = "Deny"
-    actions   = ["dynamodb:*"]
+    actions   = ["s3:*"]
     resources = ["*"]
 
     principals {
@@ -330,6 +328,7 @@ data "aws_iam_policy_document" "dynamodb_endpoint_policy" {
     }
   }
 }
+
 
 data "aws_iam_policy_document" "generic_endpoint_policy" {
   statement {
