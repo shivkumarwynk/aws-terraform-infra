@@ -150,6 +150,15 @@ resource "aws_ecs_task_definition" "service" {
     })
   ])
 
+  dynamic "volume" {
+    for_each = try(each.value.volumes, [])
+
+    content {
+      name      = volume.value.name
+      host_path = try(volume.value.host.sourcePath, null)
+    }
+  }
+
   runtime_platform {
     cpu_architecture        = "X86_64"
     operating_system_family = "LINUX"
