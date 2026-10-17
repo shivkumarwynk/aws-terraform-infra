@@ -531,3 +531,26 @@ resource "aws_security_group" "vpn" {
     local.tags,
   )
 }
+
+
+######
+resource "aws_security_group" "nat" {
+  name        = "${local.name}-${local.env}-fck-nat"
+  description = "Allow prod nat outbound traffic"
+  vpc_id      = module.vpc.vpc_id
+
+  # Allow all outbound traffic
+  egress {
+    description = "Allow all outbound traffic"
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+  tags = merge(
+    {
+      "Name" = "${local.name}-${local.env}-fck-nat"
+    },
+    local.tags,
+  )
+}
