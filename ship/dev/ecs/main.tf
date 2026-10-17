@@ -160,7 +160,7 @@ resource "aws_ecs_cluster" "ecs" {
   name = local.name
 
   setting {
-    name  = "containerInsights"
+    name = "containerInsights"
     #value = "enhanced"
     value = "enabled"
   }
@@ -299,17 +299,12 @@ resource "aws_ecs_cluster_capacity_providers" "cluster_capacity_providers" {
     aws_ecs_capacity_provider.spot.name
   ]
 
-  # Keep at least 1 On-Demand instance
+  # Managed Instances supports only one provider in a strategy. Keep Spot
+  # associated with the cluster for explicit use, but default to On-Demand.
   default_capacity_provider_strategy {
     base              = 1
     capacity_provider = aws_ecs_capacity_provider.managed.name
     weight            = 1
-  }
-
-  # Remaining capacity goes to Spot
-  default_capacity_provider_strategy {
-    capacity_provider = aws_ecs_capacity_provider.spot.name
-    weight            = 3
   }
 
   depends_on = [
