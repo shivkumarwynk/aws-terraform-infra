@@ -5,7 +5,7 @@ provider "aws" {
 locals {
   common = jsondecode(file("${path.module}/../../common/config.json"))
 
-  name             = "shipturtle"
+  name             = local.vpc_config.name
   region           = local.common.region
   env              = basename(dirname(abspath(path.module)))
   vpc_config       = local.common.environments[local.env].vpc
@@ -25,6 +25,7 @@ locals {
     vpn = "${local.vpc_config.name}-${local.env}-vpn"
     app = "${local.vpc_config.name}-${local.env}-app"
     db   = "${local.vpc_config.name}-${local.env}-db"
+    nat   = "${local.vpc_config.name}-${local.env}-nat"
   }, var.security_group_names)
   common_tags = merge(local.common.tags, { Environment = local.env })
 }
@@ -39,6 +40,10 @@ data "aws_security_group" "app" {
 
 data "aws_security_group" "db" {
   name = local.security_group_names["db"]
+}
+
+data "aws_security_group" "nat" {
+  name = local.security_group_names["nat"]
 }
 
 data "aws_subnet" "vpn" {
@@ -91,7 +96,7 @@ module "ec2_instance_vpn" {
 
   for_each = toset(["vpn"])
 
-  name = "${local.env}-${each.key}"
+  name = "${local.name}-${local.env}-${each.key}"
 
   instance_type = "t3a.small"
   key_name      = local.key_name
@@ -113,7 +118,7 @@ module "ec2_instance_worker" {
 
   for_each = toset(["worker"])
 
-  name = "${local.env}-${each.key}"
+  name = "${local.name}-${local.env}-${each.key}"
 
   instance_type          = "t3a.small"
   key_name               = local.key_name
@@ -131,7 +136,7 @@ module "ec2_instance_worker" {
 module "ec2_instance_fck_nat" {
   source = "../../../modules/v1/terraform-aws-ec2-instance"
   for_each = toset(["fck-nat"])
-  name = "${local.env}-${each.key}-fck-nat"
+  name = "${local.name}-${local.env}-${each.key}"
   instance_type          = "t3a.small"
   key_name               = local.key_name
   monitoring             = false
@@ -139,7 +144,7 @@ module "ec2_instance_fck_nat" {
   ami                    = local.ami
   iam_instance_profile   = module.ec2_instance_profile.instance_profile_name
   root_block_device      = local.root_block_device
-  vpc_security_group_ids = [data.aws_security_group.vpn.id]
+  vpc_security_group_ids = [data.aws_security_group.nat.id]
   tags = merge(local.common_tags, {
     tier = "fck-nat"
   })
