@@ -25,7 +25,7 @@ locals {
     vpn = "${local.vpc_config.name}-${local.env}-vpn"
     app = "${local.vpc_config.name}-${local.env}-app"
     db   = "${local.vpc_config.name}-${local.env}-db"
-    nat   = "${local.vpc_config.name}-${local.env}-nat"
+    nat   = "${local.vpc_config.name}-${local.env}-fck-nat"
   }, var.security_group_names)
   common_tags = merge(local.common.tags, { Environment = local.env })
 }
