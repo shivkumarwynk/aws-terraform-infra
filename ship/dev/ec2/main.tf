@@ -9,7 +9,7 @@ locals {
   name             = local.vpc_config.name
   region           = local.common.region
   ami              = "ami-019715e0d74f695be"
-  ami_nat          = "ami-0b1620c5cf7720f25"
+  ami_nat          = "ami-0861a2155d5befd99"
   key_name         = "shipturtle-dev"
   iam_role_name = "${local.name}-${local.env}-ec2"
   root_block_device = {
@@ -138,7 +138,7 @@ module "ec2_instance_fck_nat" {
   source = "../../../modules/v1/terraform-aws-ec2-instance"
   for_each = toset(["fck-nat"])
   name = "${local.name}-${local.env}-${each.key}"
-  instance_type          = "t4g.nano"
+  instance_type          = "t4g.small"
   create_eip             = true
   key_name               = local.key_name
   monitoring             = false
