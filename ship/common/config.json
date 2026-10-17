@@ -2,21 +2,20 @@
   "account_name": "ship",
   "region": "ap-south-1",
   "tags": {
-    "Account": "ship",
-    "ManagedBy": "Terraform",
-    "Terraform": "true"
+    "Account": "shipturtle",
+    "ManagedBy": "Terraform"
   },
   "environments": {
     "dev": {
       "vpc": {
-        "name": "ship",
+        "name": "shipturtle",
         "vpc_cidr": "10.16.0.0/16",
         "availability_zone_count": 2
       }
     },
     "prod": {
       "vpc": {
-        "name": "ship",
+        "name": "shipturtle",
         "vpc_cidr": "10.14.0.0/16",
         "availability_zone_count": 2
       }
