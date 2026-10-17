@@ -7,18 +7,18 @@ locals {
 
   env          = basename(dirname(abspath(path.module)))
   region       = local.common.region
-  repositories = toset(["frontend", "backend", "devops"])
+  repositories = toset(["shipturtle-staging-channel", "shipturtle-staging-php", "shipturtle-staging-web", "shipturtle-staging-php-channel"])
   tags         = merge(local.common.tags, { Environment = local.env })
 
   lifecycle_policy = jsonencode({
     rules = [
       {
         rulePriority = 1
-        description  = "Keep the newest 20 images"
+        description  = "Keep the newest 30 images"
         selection = {
           tagStatus   = "any"
           countType   = "imageCountMoreThan"
-          countNumber = 20
+          countNumber = 30
         }
         action = {
           type = "expire"
