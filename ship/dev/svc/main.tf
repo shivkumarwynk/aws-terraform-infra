@@ -71,18 +71,44 @@ resource "aws_iam_role_policy" "create_log_groups" {
 
   policy = jsonencode({
     Version = "2012-10-17"
-    Statement = [{
-      Sid    = "CreateServiceLogGroups"
-      Effect = "Allow"
-      Action = ["logs:CreateLogGroup"]
-      Resource = distinct(flatten([
-        for service in values(local.services) : [
-          for container in service.containerDefinitions :
-          "arn:${data.aws_partition.current.partition}:logs:${local.region}:${data.aws_caller_identity.current.account_id}:log-group:${container.logConfiguration.options["awslogs-group"]}"
-          if try(container.logConfiguration.logDriver, "") == "awslogs"
+    Statement = [
+      {
+        Sid    = "CreateServiceLogGroups"
+        Effect = "Allow"
+        Action = ["logs:CreateLogGroup"]
+        Resource = distinct(flatten([
+          for service in values(local.services) : [
+            for container in service.containerDefinitions :
+            "arn:${data.aws_partition.current.partition}:logs:${local.region}:${data.aws_caller_identity.current.account_id}:log-group:${container.logConfiguration.options["awslogs-group"]}"
+            if try(container.logConfiguration.logDriver, "") == "awslogs"
+          ]
+        ]))
+      },
+      {
+        Sid    = "ECSExecChannels"
+        Effect = "Allow"
+        Action = [
+          "ssmmessages:CreateControlChannel",
+          "ssmmessages:CreateDataChannel",
+          "ssmmessages:OpenControlChannel",
+          "ssmmessages:OpenDataChannel",
         ]
-      ]))
-    }]
+        Resource = "*"
+      },
+      {
+        Sid    = "ReadTaskSecrets"
+        Effect = "Allow"
+        Action = ["secretsmanager:GetSecretValue"]
+        Resource = distinct(flatten([
+          for service in values(local.services) : flatten([
+            for container in service.containerDefinitions : [
+              for secret in try(container.secrets, []) :
+              join(":", slice(split(":", secret.valueFrom), 0, 7))
+            ]
+          ])
+        ]))
+      },
+    ]
   })
 }
 
