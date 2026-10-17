@@ -128,13 +128,10 @@ module "ec2_instance_worker" {
   })
 }
 
-module "ec2_instance_fck_nat {
+module "ec2_instance_fck_nat" {
   source = "../../../modules/v1/terraform-aws-ec2-instance"
-
   for_each = toset(["fck-nat"])
-
   name = "${local.env}-${each.key}-fck-nat"
-
   instance_type          = "t3a.small"
   key_name               = local.key_name
   monitoring             = false
