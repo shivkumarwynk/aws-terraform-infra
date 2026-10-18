@@ -121,7 +121,7 @@ module "ec2_instance_worker" {
 
   name = "${local.name}-${local.env}-${each.key}"
 
-  instance_type          = "t3a.xlarge"
+  instance_type          = "t3a.large"
   key_name               = local.key_name
   monitoring             = false
   subnet_id              = data.aws_subnet.vpn.id
