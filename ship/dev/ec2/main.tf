@@ -154,4 +154,25 @@ module "ec2_instance_fck_nat" {
 }
 
 
+module "ec2_instance_runner" {
+  source = "../../../modules/v1/terraform-aws-ec2-instance"
+
+  for_each = toset(["runner"])
+
+  name = "${local.name}-${local.env}-${each.key}"
+
+  instance_type          = "t3a.medium"
+  key_name               = local.key_name
+  monitoring             = false
+  subnet_id              = data.aws_subnet.app.id
+  ami                    = local.ami
+  iam_instance_profile   = module.ec2_instance_profile.instance_profile_name
+  root_block_device      = local.root_block_device
+  vpc_security_group_ids = [data.aws_security_group.app.id]
+  tags = merge(local.common_tags, {
+    tier = "runner"
+  })
+}
+
+
 
