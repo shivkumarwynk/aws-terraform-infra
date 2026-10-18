@@ -126,6 +126,7 @@ module "ec2_instance_worker" {
   monitoring             = false
   subnet_id              = data.aws_subnet.vpn.id
   ami                    = local.ami
+  create_eip             = true
   iam_instance_profile   = module.ec2_instance_profile.instance_profile_name
   root_block_device = {
     encrypted  = true
