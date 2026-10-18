@@ -121,7 +121,7 @@ module "ec2_instance_worker" {
 
   name = "${local.name}-${local.env}-${each.key}"
 
-  instance_type          = "t3a.small"
+  instance_type          = "t3a.xlarge"
   key_name               = local.key_name
   monitoring             = false
   subnet_id              = data.aws_subnet.vpn.id
@@ -133,7 +133,7 @@ module "ec2_instance_worker" {
     type       = "gp3"
     size       = 100
   }
-  vpc_security_group_ids = [data.aws_security_group.vpn.id]
+  vpc_security_group_ids = ["sg-0baf46a4377037ed4"]
   tags = merge(local.common_tags, {
     tier = "worker"
   })
