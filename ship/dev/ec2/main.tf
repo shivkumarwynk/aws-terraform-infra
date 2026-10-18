@@ -148,7 +148,7 @@ module "ec2_instance_fck_nat" {
   monitoring             = false
   subnet_id              = data.aws_subnet.vpn.id
   ami                    = local.ami_nat
-  source_dest_check      = true
+  source_dest_check      = false
   iam_instance_profile   = module.ec2_instance_profile.instance_profile_name
   root_block_device      = local.root_block_device
   vpc_security_group_ids = [data.aws_security_group.nat.id]
@@ -170,7 +170,7 @@ module "ec2_instance_runner" {
   monitoring             = false
   subnet_id              = data.aws_subnet.app.id
   ami                    = local.ami
-  iam_instance_profile   = module.ec2_instance_profile.instance_profile_name
+  iam_instance_profile   = "shipturtle-dev-ec2-runner"
   root_block_device = {
     encrypted  = true
     type       = "gp3"
